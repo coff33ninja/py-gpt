@@ -6,7 +6,7 @@
 # GitHub:  https://github.com/szczyglis-dev/py-gpt   #
 # MIT License                                        #
 # Created By  : Marcin Szczygliński                  #
-# Updated Date: 2025.09.17 20:00:00                  #
+# Updated Date: 2026.02.04 00:00:00                  #
 # ================================================== #
 
 from typing import Optional, List, Dict
@@ -15,20 +15,66 @@ from llama_index.core.llms.llm import BaseLLM as LlamaBaseLLM
 from llama_index.core.multi_modal_llms import MultiModalLLM as LlamaMultiModalLLM
 from llama_index.core.base.embeddings.base import BaseEmbedding
 
-from pygpt_net.core.types import (
-    MODE_CHAT,
-    MODE_LLAMA_INDEX,
-)
-from pygpt_net.provider.llms.base import BaseLLM
+from pygpt_net.core.types import MODE_CHAT, MODE_LLAMA_INDEX
+from pygpt_net.provider.llms.base_provider import StandardLLMProvider
 from pygpt_net.item.model import ModelItem
 
 
-class xAILLM(BaseLLM):
+class xAILLM(StandardLLMProvider):
     def __init__(self, *args, **kwargs):
-        super(xAILLM, self).__init__(*args, **kwargs)
-        self.id = "x_ai"
-        self.name = "xAI"
-        self.type = [MODE_CHAT, MODE_LLAMA_INDEX, "embeddings"]
+        super().__init__(
+            provider_id="x_ai",
+            provider_name="xAI",
+            supported_modes=[MODE_CHAT, MODE_LLAMA_INDEX, "embeddings"],
+            api_key_config="api_key_xai",
+            *args,
+            **kwargs
+        )
+
+    def _create_llm_instance(
+            self,
+            args: Dict,
+            window,
+            model: ModelItem
+    ) -> LlamaBaseLLM:
+        """
+        Create xAI LLM instance using OpenAILike with Live Search support.
+
+        :param args: Prepared arguments dict
+        :param window: Window instance
+        :param model: Model instance
+        :return: OpenAILike LLM instance
+        """
+        from llama_index.llms.openai_like import OpenAILike
+
+        # Set xAI-specific API base
+        if "api_base" not in args or args["api_base"] == "":
+            args["api_base"] = window.core.config.get("api_endpoint_xai", "https://api.x.ai/v1")
+
+        # Set chat model flags
+        if "is_chat_model" not in args:
+            args["is_chat_model"] = True
+        if "is_function_calling_model" not in args:
+            args["is_function_calling_model"] = model.tool_calls
+
+        # xAI Live Search via search_parameters (Chat Completions)
+        # LlamaIndex OpenAILike supports 'additional_kwargs' passed to request body
+        try:
+            xai_remote = window.core.api.xai.remote.build(model=model) or {}
+        except Exception as e:
+            window.core.debug.log(e)
+            xai_remote = {}
+
+        search_http = xai_remote.get("http")
+        if search_http:
+            add_kwargs = dict(args.get("additional_kwargs") or {})
+            extra_body = dict(add_kwargs.get("extra_body") or {})
+            # Do not overwrite if user already set search_parameters manually
+            extra_body.setdefault("search_parameters", search_http)
+            add_kwargs["extra_body"] = extra_body
+            args["additional_kwargs"] = add_kwargs
+
+        return OpenAILike(**args)
 
     def completion(
             self,
@@ -61,55 +107,6 @@ class xAILLM(BaseLLM):
         :return: LLM provider instance
         """
         pass
-
-    def llama(
-            self,
-            window,
-            model: ModelItem,
-            stream: bool = False
-    ) -> LlamaBaseLLM:
-        """
-        Return LLM provider instance for llama
-
-        :param window: window instance
-        :param model: model instance
-        :param stream: stream mode
-        :return: LLM provider instance
-        """
-        from llama_index.llms.openai_like import OpenAILike
-        args = self.parse_args(model.llama_index, window)
-        if "model" not in args:
-            args["model"] = model.id
-        if "api_key" not in args or args["api_key"] == "":
-            args["api_key"] = window.core.config.get("api_key_xai", "")
-        if "api_base" not in args or args["api_base"] == "":
-            args["api_base"] = window.core.config.get("api_endpoint_xai", "https://api.x.ai/v1")
-        if "is_chat_model" not in args:
-            args["is_chat_model"] = True
-        if "is_function_calling_model" not in args:
-            args["is_function_calling_model"] = model.tool_calls
-        args = self.inject_llamaindex_http_clients(args, window.core.config)
-
-        # -----------------------------------------------------------
-        # xAI Live Search via search_parameters (Chat Completions)
-        # LlamaIndex OpenAILike supports 'additional_kwargs' passed to request body.
-        # -----------------------------------------------------------
-        try:
-            xai_remote = window.core.api.xai.remote.build(model=model) or {}
-        except Exception as e:
-            window.core.debug.log(e)
-            xai_remote = {}
-
-        search_http = xai_remote.get("http")
-        if search_http:
-            add_kwargs = dict(args.get("additional_kwargs") or {})
-            extra_body = dict(add_kwargs.get("extra_body") or {})
-            # Do not overwrite if user already set search_parameters manually
-            extra_body.setdefault("search_parameters", search_http)
-            add_kwargs["extra_body"] = extra_body
-            args["additional_kwargs"] = add_kwargs
-
-        return OpenAILike(**args)
 
     def llama_multimodal(
             self,

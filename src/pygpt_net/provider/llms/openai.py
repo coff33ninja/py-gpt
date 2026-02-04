@@ -6,34 +6,65 @@
 # GitHub:  https://github.com/szczyglis-dev/py-gpt   #
 # MIT License                                        #
 # Created By  : Marcin Szczygliński                  #
-# Updated Date: 2025.09.22 08:00:00                  #
+# Updated Date: 2026.02.04 00:00:00                  #
 # ================================================== #
 
 from typing import Optional, List, Dict
 
-# from langchain_openai import OpenAI
-# from langchain_openai import ChatOpenAI
-
 from llama_index.core.llms.llm import BaseLLM as LlamaBaseLLM
 from llama_index.core.multi_modal_llms import MultiModalLLM as LlamaMultiModalLLM
 from llama_index.core.base.embeddings.base import BaseEmbedding
-
 from llama_index.multi_modal_llms.openai import OpenAIMultiModal as LlamaOpenAIMultiModal
 
-from pygpt_net.core.types import (
-    MODE_LLAMA_INDEX,
-    MODE_CHAT,
-)
-from pygpt_net.provider.llms.base import BaseLLM
+from pygpt_net.core.types import MODE_LLAMA_INDEX
+from pygpt_net.provider.llms.base_provider import StandardLLMProvider
 from pygpt_net.item.model import ModelItem
 
 
-class OpenAILLM(BaseLLM):
+class OpenAILLM(StandardLLMProvider):
     def __init__(self, *args, **kwargs):
-        super(OpenAILLM, self).__init__(*args, **kwargs)
-        self.id = "openai"
-        self.name = "OpenAI"
-        self.type = [MODE_LLAMA_INDEX, "embeddings"]
+        super().__init__(
+            provider_id="openai",
+            provider_name="OpenAI",
+            supported_modes=[MODE_LLAMA_INDEX, "embeddings"],
+            api_key_config="api_key",
+            *args,
+            **kwargs
+        )
+
+    def _create_llm_instance(
+            self,
+            args: Dict,
+            window,
+            model: ModelItem
+    ) -> LlamaBaseLLM:
+        """
+        Create OpenAI LLM instance with optional Responses support.
+
+        :param args: Prepared arguments dict
+        :param window: Window instance
+        :param model: Model instance
+        :return: OpenAI LLM instance
+        """
+        from llama_index.llms.openai import OpenAI as LlamaOpenAI
+        from llama_index.llms.openai import OpenAIResponses as LlamaOpenAIResponses
+
+        mode = window.core.config.get("mode")
+        # Don't use Responses in agent modes
+        if window.core.config.get('api_use_responses_llama', False) and mode == MODE_LLAMA_INDEX:
+            tools = []
+            tools = window.core.api.openai.remote_tools.append_to_tools(
+                mode=MODE_LLAMA_INDEX,
+                model=model,
+                stream=False,
+                is_expert_call=False,
+                tools=tools,
+            )
+            if tools:
+                args["built_in_tools"] = tools
+            return LlamaOpenAIResponses(**args)
+        else:
+            return LlamaOpenAI(**args)
 
     def completion(
             self,
@@ -48,11 +79,6 @@ class OpenAILLM(BaseLLM):
         :param model: model instance
         :param stream: stream mode
         :return: LLM provider instance
-
-        args = self.parse_args(model.langchain)
-        if "model" not in args:
-            args["model"] = model.id
-        return OpenAI(**args)
         """
         pass
 
@@ -69,51 +95,8 @@ class OpenAILLM(BaseLLM):
         :param model: model instance
         :param stream: stream mode
         :return: LLM provider instance
-
-        args = self.parse_args(model.langchain)
-        return ChatOpenAI(**args)
         """
         pass
-
-    def llama(
-            self,
-            window,
-            model: ModelItem,
-            stream: bool = False
-    ) -> LlamaBaseLLM:
-        """
-        Return LLM provider instance for llama
-
-        :param window: window instance
-        :param model: model instance
-        :param stream: stream mode
-        :return: LLM provider instance
-        """
-        from llama_index.llms.openai import OpenAI as LlamaOpenAI
-        from llama_index.llms.openai import OpenAIResponses as LlamaOpenAIResponses
-        args = self.parse_args(model.llama_index, window)
-        if "api_key" not in args:
-            args["api_key"] = window.core.config.get("api_key", "")
-        if "model" not in args:
-            args["model"] = model.id
-
-        args = self.inject_llamaindex_http_clients(args, window.core.config)
-        mode = window.core.config.get("mode")
-        # dont' use Responses in agent modes
-        if window.core.config.get('api_use_responses_llama', False) and mode == MODE_LLAMA_INDEX:
-            tools = []
-            tools = window.core.api.openai.remote_tools.append_to_tools(
-                mode=MODE_LLAMA_INDEX,
-                model=model,
-                stream=stream,
-                is_expert_call=False,
-                tools=tools,
-            )
-            if tools:
-                args["built_in_tools"] = tools
-            return LlamaOpenAIResponses(**args)
-        else:
-            return LlamaOpenAI(**args)
 
     def llama_multimodal(
             self,

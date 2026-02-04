@@ -6,7 +6,7 @@
 # GitHub:  https://github.com/szczyglis-dev/py-gpt   #
 # MIT License                                        #
 # Created By  : Marcin Szczygliński                  #
-# Updated Date: 2026.01.02 19:00:00                  #
+# Updated Date: 2026.02.04 00:00:00                  #
 # ================================================== #
 
 from typing import Optional, List, Dict
@@ -15,59 +15,57 @@ from google.genai import types as gtypes
 from llama_index.core.llms.llm import BaseLLM as LlamaBaseLLM
 from llama_index.core.base.embeddings.base import BaseEmbedding
 
-from pygpt_net.core.types import (
-    MODE_LLAMA_INDEX,
-)
-from pygpt_net.provider.llms.base import BaseLLM
+from pygpt_net.core.types import MODE_LLAMA_INDEX
+from pygpt_net.provider.llms.base_provider import StandardLLMProvider
 from pygpt_net.item.model import ModelItem
 
 
-class GoogleLLM(BaseLLM):
+class GoogleLLM(StandardLLMProvider):
     def __init__(self, *args, **kwargs):
-        super(GoogleLLM, self).__init__(*args, **kwargs)
-        """
-        Required ENV variables:
-            - GOOGLE_API_KEY - API key for Google API
-        Required args:
-            - model: model name, e.g. gemini-1,5-pro
-            - api_key: API key for Google API
-        """
-        self.id = "google"
-        self.name = "Google"
-        self.type = [MODE_LLAMA_INDEX, "embeddings"]
+        super().__init__(
+            provider_id="google",
+            provider_name="Google",
+            supported_modes=[MODE_LLAMA_INDEX, "embeddings"],
+            api_key_config="api_key_google",
+            *args,
+            **kwargs
+        )
 
-    def llama(
+    def _create_llm_instance(
             self,
+            args: Dict,
             window,
-            model: ModelItem,
-            stream: bool = False
+            model: ModelItem
     ) -> LlamaBaseLLM:
         """
-        Return LLM provider instance for llama
+        Create Google GenAI LLM instance.
 
-        :param window: window instance
-        :param model: model instance
-        :param stream: stream mode
-        :return: LLM provider instance
+        :param args: Prepared arguments dict
+        :param window: Window instance
+        :param model: Model instance
+        :return: GoogleGenAI LLM instance
         """
         from llama_index.llms.google_genai import GoogleGenAI
-        args = self.parse_args(model.llama_index, window)
-        if "model" not in args:
-            args["model"] = model.id
-        if "api_key" not in args or args["api_key"] == "":
-            args["api_key"] = window.core.config.get("api_key_google", "")
 
-        window.core.api.google.setup_env()  # setup VertexAI if configured
-        args = self.inject_llamaindex_http_clients(args, window.core.config)
+        # Setup VertexAI if configured
+        window.core.api.google.setup_env()
 
-        # -----------------------------------------------------------
-        # Remote built-in tools for Google GenAI via LlamaIndex:
-        # - Google Search grounding (Tool(google_search=GoogleSearch()))
-        # - Code Execution (Tool(code_execution=ToolCodeExecution()))
-        # - Url Context (Tool(url_context=UrlContext)) on 2.x+
-        # We reuse native builder and forward tools into LlamaIndex.
-        # If 1 tool -> use 'built_in_tool', if >1 -> pack into generation_config.tools
-        # -----------------------------------------------------------
+        return GoogleGenAI(**args)
+
+    def _setup_remote_tools(
+            self,
+            args: Dict,
+            window,
+            model: ModelItem
+    ) -> Dict:
+        """
+        Setup Google remote built-in tools (Google Search, Code Execution, URL Context).
+
+        :param args: Arguments dict
+        :param window: Window instance
+        :param model: Model instance
+        :return: Updated arguments dict
+        """
         built_tools = []
         try:
             built_tools = window.core.api.google.remote_tools.build_remote_tools(model=model) or []
@@ -88,7 +86,7 @@ class GoogleLLM(BaseLLM):
                         window.core.debug.log(e)
                         args["built_in_tool"] = built_tools[0]
 
-        return GoogleGenAI(**args)
+        return args
 
     def get_embeddings_model(
             self,
@@ -134,11 +132,18 @@ class GoogleLLM(BaseLLM):
             id = item.name.replace("models/", "")
             items.append({
                 "id": id,
-                "name": id,  # TODO: token limit get from API
+                "name": id,
             })
         return items
 
     def inject_llamaindex_http_clients(self, args: dict, cfg) -> dict:
+        """
+        Override to use Google-specific HttpOptions for proxy.
+
+        :param args: Arguments dict
+        :param cfg: Config instance
+        :return: Updated arguments dict
+        """
         proxy = cfg.get("api_proxy")
         if not cfg.get("api_proxy.enabled", False):
             proxy = ""

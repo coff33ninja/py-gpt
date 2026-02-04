@@ -6,29 +6,47 @@
 # GitHub:  https://github.com/szczyglis-dev/py-gpt   #
 # MIT License                                        #
 # Created By  : Marcin Szczygliński                  #
-# Updated Date: 2025.09.15 01:00:00                  #
+# Updated Date: 2026.02.04 00:00:00                  #
 # ================================================== #
 
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Dict
 
 from llama_index.core.llms.llm import BaseLLM as LlamaBaseLLM
 from llama_index.core.multi_modal_llms import MultiModalLLM as LlamaMultiModalLLM
 from llama_index.core.base.embeddings.base import BaseEmbedding
 
-from pygpt_net.core.types import (
-    MODE_CHAT,
-    MODE_LLAMA_INDEX,
-)
-from pygpt_net.provider.llms.base import BaseLLM
+from pygpt_net.core.types import MODE_CHAT, MODE_LLAMA_INDEX
+from pygpt_net.provider.llms.base_provider import StandardLLMProvider
 from pygpt_net.item.model import ModelItem
 
 
-class HuggingFaceRouterLLM(BaseLLM):
+class HuggingFaceRouterLLM(StandardLLMProvider):
     def __init__(self, *args, **kwargs):
-        super(HuggingFaceRouterLLM, self).__init__(*args, **kwargs)
-        self.id = "huggingface_router"
-        self.name = "HuggingFace Router"
-        self.type = [MODE_CHAT, MODE_LLAMA_INDEX, "embeddings"]
+        super().__init__(
+            provider_id="huggingface_router",
+            provider_name="HuggingFace Router",
+            supported_modes=[MODE_CHAT, MODE_LLAMA_INDEX, "embeddings"],
+            api_key_config="api_key_hugging_face",
+            *args,
+            **kwargs
+        )
+
+    def _create_llm_instance(
+            self,
+            args: Dict,
+            window,
+            model: ModelItem
+    ) -> LlamaBaseLLM:
+        """
+        Create HuggingFace Router LLM instance using OpenAILike.
+
+        :param args: Prepared arguments dict
+        :param window: Window instance
+        :param model: Model instance
+        :return: OpenAILike LLM instance
+        """
+        from llama_index.llms.openai_like import OpenAILike
+        return OpenAILike(**args)
 
     def completion(
             self,
@@ -61,29 +79,6 @@ class HuggingFaceRouterLLM(BaseLLM):
         :return: LLM provider instance
         """
         pass
-
-    def llama(
-            self,
-            window,
-            model: ModelItem,
-            stream: bool = False
-    ) -> LlamaBaseLLM:
-        """
-        Return LLM provider instance for llama
-
-        :param window: window instance
-        :param model: model instance
-        :param stream: stream mode
-        :return: LLM provider instance
-        """
-        from llama_index.llms.openai_like import OpenAILike
-        args = self.parse_args(model.llama_index, window)
-        if "model" not in args:
-            args["model"] = model.id
-        if "api_key" not in args or args["api_key"] == "":
-            args["api_key"] = window.core.config.get("api_key_hugging_face", "")
-        args = self.inject_llamaindex_http_clients(args, window.core.config)
-        return OpenAILike(**args)
 
     def llama_multimodal(
             self,

@@ -6,44 +6,53 @@
 # GitHub:  https://github.com/szczyglis-dev/py-gpt   #
 # MIT License                                        #
 # Created By  : Marcin Szczygliński                  #
-# Updated Date: 2025.09.15 01:00:00                  #
+# Updated Date: 2026.02.04 00:00:00                  #
 # ================================================== #
 
 import os
 from typing import Optional, List, Dict
 
-from pygpt_net.core.types import (
-    MODE_LLAMA_INDEX,
-)
 from llama_index.core.llms.llm import BaseLLM as LlamaBaseLLM
 from llama_index.core.base.embeddings.base import BaseEmbedding
 
-from pygpt_net.provider.llms.base import BaseLLM
+from pygpt_net.core.types import MODE_LLAMA_INDEX
+from pygpt_net.provider.llms.base_provider import StandardLLMProvider
 from pygpt_net.item.model import ModelItem
 
 
-class MistralAILLM(BaseLLM):
+class MistralAILLM(StandardLLMProvider):
     def __init__(self, *args, **kwargs):
-        super(MistralAILLM, self).__init__(*args, **kwargs)
-        self.id = "mistral_ai"
-        self.name = "Mistral AI"
-        self.type = [MODE_LLAMA_INDEX, "embeddings"]
+        super().__init__(
+            provider_id="mistral_ai",
+            provider_name="Mistral AI",
+            supported_modes=[MODE_LLAMA_INDEX, "embeddings"],
+            api_key_config="api_key_mistral",
+            *args,
+            **kwargs
+        )
 
-    def llama(
+    def _create_llm_instance(
             self,
+            args: Dict,
             window,
-            model: ModelItem,
-            stream: bool = False
+            model: ModelItem
     ) -> LlamaBaseLLM:
         """
-        Return LLM provider instance for llama
+        Create Mistral AI LLM instance with custom proxy support.
 
-        :param window: window instance
-        :param model: model instance
-        :param stream: stream mode
-        :return: LLM provider instance
+        :param args: Prepared arguments dict
+        :param window: Window instance
+        :param model: Model instance
+        :return: MistralAI LLM instance
         """
         from llama_index.llms.mistralai import MistralAI
+
+        cfg = window.core.config
+        proxy = cfg.get("api_proxy") or None
+        if not cfg.get("api_proxy.enabled", False):
+            proxy = None
+
+        # Custom proxy wrapper for Mistral AI
         class MistralAIWithProxy(MistralAI):
             def __init__(self, *args, proxy: Optional[str] = None, **kwargs):
                 endpoint = kwargs.get("endpoint")
@@ -72,14 +81,6 @@ class MistralAILLM(BaseLLM):
 
                 self._client = Mistral(**sdk_kwargs)
 
-        args = self.parse_args(model.llama_index, window)
-        proxy = window.core.config.get("api_proxy") or None
-        if not window.core.config.get("api_proxy.enabled", False):
-            proxy = None
-        if "model" not in args:
-            args["model"] = model.id
-        if "api_key" not in args or args["api_key"] == "":
-            args["api_key"] = window.core.config.get("api_key_mistral", "")
         return MistralAIWithProxy(**args, proxy=proxy)
 
     def get_embeddings_model(
@@ -95,6 +96,7 @@ class MistralAILLM(BaseLLM):
         :return: Embedding provider instance
         """
         from llama_index.embeddings.mistralai import MistralAIEmbedding
+
         class MistralAIEmbeddingWithProxy(MistralAIEmbedding):
             def __init__(self, *args, proxy: Optional[str] = None, api_key: Optional[str] = None, **kwargs):
                 captured_key = api_key or os.environ.get("MISTRAL_API_KEY", "")
@@ -121,6 +123,7 @@ class MistralAILLM(BaseLLM):
                 )
                 if hasattr(self, "_mistralai_client"):
                     self._mistralai_client = self._client
+
         args = {}
         if config is not None:
             args = self.parse_args({

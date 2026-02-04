@@ -6,50 +6,45 @@
 # GitHub:  https://github.com/szczyglis-dev/py-gpt   #
 # MIT License                                        #
 # Created By  : Marcin Szczygliński                  #
-# Updated Date: 2025.09.15 01:00:00                  #
+# Updated Date: 2026.02.04 00:00:00                  #
 # ================================================== #
 
 from typing import List, Dict, Optional
 
 from llama_index.core.base.embeddings.base import BaseEmbedding
-
-from pygpt_net.core.types import (
-    MODE_LLAMA_INDEX,
-)
 from llama_index.core.llms.llm import BaseLLM as LlamaBaseLLM
 
-from pygpt_net.provider.llms.base import BaseLLM
+from pygpt_net.core.types import MODE_LLAMA_INDEX
+from pygpt_net.provider.llms.base_provider import StandardLLMProvider
 from pygpt_net.item.model import ModelItem
 
 
-class DeepseekApiLLM(BaseLLM):
+class DeepseekApiLLM(StandardLLMProvider):
     def __init__(self, *args, **kwargs):
-        super(DeepseekApiLLM, self).__init__(*args, **kwargs)
-        self.id = "deepseek_api"
-        self.name = "Deepseek API"
-        self.type = [MODE_LLAMA_INDEX, "embeddings"]
+        super().__init__(
+            provider_id="deepseek_api",
+            provider_name="Deepseek API",
+            supported_modes=[MODE_LLAMA_INDEX, "embeddings"],
+            api_key_config="api_key_deepseek",
+            *args,
+            **kwargs
+        )
 
-    def llama(
+    def _create_llm_instance(
             self,
+            args: Dict,
             window,
-            model: ModelItem,
-            stream: bool = False
+            model: ModelItem
     ) -> LlamaBaseLLM:
         """
-        Return LLM provider instance for llama
+        Create Deepseek LLM instance.
 
-        :param window: window instance
-        :param model: model instance
-        :param stream: stream mode
-        :return: LLM provider instance
+        :param args: Prepared arguments dict
+        :param window: Window instance
+        :param model: Model instance
+        :return: DeepSeek LLM instance
         """
         from llama_index.llms.deepseek import DeepSeek
-        args = self.parse_args(model.llama_index, window)
-        if "model" not in args:
-            args["model"] = model.id
-        if "api_key" not in args or args["api_key"] == "":
-            args["api_key"] = window.core.config.get("api_key_deepseek", "")
-        args = self.inject_llamaindex_http_clients(args, window.core.config)
         return DeepSeek(**args)
 
     def get_embeddings_model(

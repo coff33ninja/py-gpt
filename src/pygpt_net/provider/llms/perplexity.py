@@ -6,7 +6,7 @@
 # GitHub:  https://github.com/szczyglis-dev/py-gpt   #
 # MIT License                                        #
 # Created By  : Marcin Szczygliński                  #
-# Updated Date: 2025.09.15 01:00:00                  #
+# Updated Date: 2026.02.04 00:00:00                  #
 # ================================================== #
 
 from typing import Optional, List, Dict
@@ -15,91 +15,55 @@ from llama_index.core.llms.llm import BaseLLM as LlamaBaseLLM
 from llama_index.core.multi_modal_llms import MultiModalLLM as LlamaMultiModalLLM
 from llama_index.core.base.embeddings.base import BaseEmbedding
 
-from pygpt_net.core.types import (
-    MODE_CHAT,
-    MODE_RESEARCH,
-)
-from pygpt_net.provider.llms.base import BaseLLM
+from pygpt_net.core.types import MODE_CHAT, MODE_RESEARCH
+from pygpt_net.provider.llms.base_provider import StandardLLMProvider
 from pygpt_net.item.model import ModelItem
 
 
-class PerplexityLLM(BaseLLM):
+class PerplexityLLM(StandardLLMProvider):
     def __init__(self, *args, **kwargs):
-        super(PerplexityLLM, self).__init__(*args, **kwargs)
-        self.id = "perplexity"
-        self.name = "Perplexity"
-        self.type = [MODE_CHAT, MODE_RESEARCH]
+        super().__init__(
+            provider_id="perplexity",
+            provider_name="Perplexity",
+            supported_modes=[MODE_CHAT, MODE_RESEARCH],
+            api_key_config="api_key_perplexity",
+            *args,
+            **kwargs
+        )
 
-    def completion(
+    def _create_llm_instance(
             self,
+            args: Dict,
             window,
-            model: ModelItem,
-            stream: bool = False
-    ):
-        """
-        Return LLM provider instance for completion
-
-        :param window: window instance
-        :param model: model instance
-        :param stream: stream mode
-        :return: LLM provider instance
-        """
-        pass
-
-    def chat(
-            self,
-            window,
-            model: ModelItem,
-            stream: bool = False
-    ):
-        """
-        Return LLM provider instance for chat
-
-        :param window: window instance
-        :param model: model instance
-        :param stream: stream mode
-        :return: LLM provider instance
-        """
-        pass
-
-    def llama(
-            self,
-            window,
-            model: ModelItem,
-            stream: bool = False
+            model: ModelItem
     ) -> LlamaBaseLLM:
         """
-        Return LLM provider instance for llama (Perplexity)
+        Create Perplexity LLM instance with proxy support.
 
-        :param window: window instance
-        :param model: model instance
-        :param stream: stream mode
-        :return: LLM provider instance
+        :param args: Prepared arguments dict
+        :param window: Window instance
+        :param model: Model instance
+        :return: Perplexity LLM instance
         """
         from llama_index.llms.perplexity import Perplexity as LlamaPerplexity
         from .utils import ProxyEnv
 
         cfg = window.core.config
-        args = self.parse_args(model.llama_index, window)
 
-        if "api_key" not in args or not args["api_key"]:
-            args["api_key"] = cfg.get("api_key_perplexity", "")
-        if "model" not in args:
-            args["model"] = model.id
-
+        # Set custom API base if configured
         custom_base = cfg.get("api_endpoint_perplexity", "").strip()
         if custom_base and "api_base" not in args:
             args["api_base"] = custom_base
 
-        # httpx.Client/AsyncClient (proxy, timeout, socks etc.)
+        # Try httpx.Client/AsyncClient (proxy, timeout, socks etc.)
         try:
             args_injected = self.inject_llamaindex_http_clients(dict(args), cfg)
             return LlamaPerplexity(**args_injected)
         except TypeError:
-            return LlamaPerplexity(**args)
+            # Fallback to original args without httpx clients
+            pass
 
-        # -----------------------------------
-        # TODO: fallback
+        # Fallback: Use ProxyEnv context manager
         proxy = cfg.get("api_proxy") or cfg.get("api_native_perplexity.proxy")
         if not cfg.get("api_proxy.enabled", False):
             proxy = ""
@@ -146,6 +110,38 @@ class PerplexityLLM(BaseLLM):
                         yield chunk
 
         return PerplexityWithProxy(**args)
+
+    def completion(
+            self,
+            window,
+            model: ModelItem,
+            stream: bool = False
+    ):
+        """
+        Return LLM provider instance for completion
+
+        :param window: window instance
+        :param model: model instance
+        :param stream: stream mode
+        :return: LLM provider instance
+        """
+        pass
+
+    def chat(
+            self,
+            window,
+            model: ModelItem,
+            stream: bool = False
+    ):
+        """
+        Return LLM provider instance for chat
+
+        :param window: window instance
+        :param model: model instance
+        :param stream: stream mode
+        :return: LLM provider instance
+        """
+        pass
 
     def llama_multimodal(
             self,

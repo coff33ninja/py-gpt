@@ -6,7 +6,7 @@
 # GitHub:  https://github.com/szczyglis-dev/py-gpt   #
 # MIT License                                        #
 # Created By  : Marcin Szczygliński                  #
-# Updated Date: 2025.09.17 20:00:00                  #
+# Updated Date: 2026.02.04 00:00:00                  #
 # ================================================== #
 
 from typing import List, Dict, Optional
@@ -14,42 +14,44 @@ from typing import List, Dict, Optional
 from llama_index.core.base.embeddings.base import BaseEmbedding
 from llama_index.core.llms.llm import BaseLLM as LlamaBaseLLM
 
-from pygpt_net.core.types import (
-    MODE_LLAMA_INDEX, MODE_CHAT,
-)
-from pygpt_net.provider.llms.base import BaseLLM
+from pygpt_net.core.types import MODE_LLAMA_INDEX, MODE_CHAT
+from pygpt_net.provider.llms.base_provider import StandardLLMProvider
 from pygpt_net.item.model import ModelItem
 
 
-class AnthropicLLM(BaseLLM):
+class AnthropicLLM(StandardLLMProvider):
     def __init__(self, *args, **kwargs):
-        super(AnthropicLLM, self).__init__(*args, **kwargs)
-        """
-        Required ENV variables:
-            - ANTHROPIC_API_KEY - API key for Anthropic API
-        Required args:
-            - model: model name, e.g. claude-3-opus-20240229
-            - api_key: API key for Anthropic API
-        """
-        self.id = "anthropic"
-        self.name = "Anthropic"
-        self.type = [MODE_LLAMA_INDEX, "embeddings"]
+        super().__init__(
+            provider_id="anthropic",
+            provider_name="Anthropic",
+            supported_modes=[MODE_LLAMA_INDEX, "embeddings"],
+            api_key_config="api_key_anthropic",
+            *args,
+            **kwargs
+        )
 
-    def llama(
+    def _create_llm_instance(
             self,
+            args: Dict,
             window,
-            model: ModelItem,
-            stream: bool = False
+            model: ModelItem
     ) -> LlamaBaseLLM:
         """
-        Return LLM provider instance for llama
+        Create Anthropic LLM instance with custom proxy support.
 
-        :param window: window instance
-        :param model: model instance
-        :param stream: stream mode
-        :return: LLM provider instance
+        :param args: Prepared arguments dict
+        :param window: Window instance
+        :param model: Model instance
+        :return: Anthropic LLM instance
         """
         from llama_index.llms.anthropic import Anthropic
+
+        cfg = window.core.config
+        proxy = cfg.get("api_proxy", None)
+        if not cfg.get("api_proxy.enabled", False):
+            proxy = None
+
+        # Custom proxy wrapper for Anthropic
         class AnthropicWithProxy(Anthropic):
             def __init__(self, *args, proxy: str = None, **kwargs):
                 super().__init__(*args, **kwargs)
@@ -71,24 +73,25 @@ class AnthropicLLM(BaseLLM):
 
                 self._aclient = self._aclient.with_options(http_client=async_http)
 
-        args = self.parse_args(model.llama_index, window)
-        proxy = window.core.config.get("api_proxy", None)
-        if not window.core.config.get("api_proxy.enabled", False):
-            proxy = None
-        if "model" not in args:
-            args["model"] = model.id
-        if "api_key" not in args or args["api_key"] == "":
-            args["api_key"] = window.core.config.get("api_key_anthropic", "")
+        return AnthropicWithProxy(**args, proxy=proxy)
 
-        # ---------------------------------------------
-        # Remote server tools (e.g., web_search_20250305)
-        # We forward provider-native server tools via Anthropic "tools" param.
-        # This keeps behavior identical to the native SDK configuration.
-        # ---------------------------------------------
+    def _setup_remote_tools(
+            self,
+            args: Dict,
+            window,
+            model: ModelItem
+    ) -> Dict:
+        """
+        Setup Anthropic remote server tools (e.g., web_search_20250305).
+
+        :param args: Arguments dict
+        :param window: Window instance
+        :param model: Model instance
+        :return: Updated arguments dict
+        """
         try:
             remote_tools = window.core.api.anthropic.tools.build_remote_tools(model=model) or []
         except Exception as e:
-            # Do not break if config builder throws; just skip tools
             window.core.debug.log(e)
             remote_tools = []
 
@@ -108,7 +111,7 @@ class AnthropicLLM(BaseLLM):
                 # Defensive: if 'tools' was something unexpected, overwrite safely
                 args["tools"] = list(remote_tools)
 
-        return AnthropicWithProxy(**args, proxy=proxy)
+        return args
 
     def get_embeddings_model(
             self,

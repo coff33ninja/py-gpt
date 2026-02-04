@@ -6,7 +6,7 @@
 # GitHub:  https://github.com/szczyglis-dev/py-gpt   #
 # MIT License                                        #
 # Created By  : Marcin Szczygliński                  #
-# Updated Date: 2025.09.15 01:00:00                  #
+# Updated Date: 2026.02.04 00:00:00                  #
 # ================================================== #
 
 from typing import Optional, List, Dict
@@ -14,27 +14,38 @@ from typing import Optional, List, Dict
 from llama_index.core.llms.llm import BaseLLM as LlamaBaseLLM
 from llama_index.core.base.embeddings.base import BaseEmbedding
 
-from pygpt_net.core.types import (
-    MODE_LLAMA_INDEX,
-)
-from pygpt_net.provider.llms.base import BaseLLM
+from pygpt_net.core.types import MODE_LLAMA_INDEX
+from pygpt_net.provider.llms.base_provider import StandardLLMProvider
 from pygpt_net.item.model import ModelItem
 
 
-class AzureOpenAILLM(BaseLLM):
+class AzureOpenAILLM(StandardLLMProvider):
     def __init__(self, *args, **kwargs):
-        super(AzureOpenAILLM, self).__init__(*args, **kwargs)
+        super().__init__(
+            provider_id="azure_openai",
+            provider_name="Azure OpenAI",
+            supported_modes=[MODE_LLAMA_INDEX, "embeddings"],
+            api_key_config="api_key",
+            *args,
+            **kwargs
+        )
+
+    def _create_llm_instance(
+            self,
+            args: Dict,
+            window,
+            model: ModelItem
+    ) -> LlamaBaseLLM:
         """
-        Required ENV variables:
-            - AZURE_OPENAI_API_KEY - API key for Azure OpenAI API
-            - AZURE_OPENAI_ENDPOINT - API endpoint for Azure OpenAI API
-        Required args:
-            - model: model name, e.g. gpt-4
-            - api_key: API key for Azure OpenAI API
+        Create Azure OpenAI LLM instance.
+
+        :param args: Prepared arguments dict
+        :param window: Window instance
+        :param model: Model instance
+        :return: AzureOpenAI LLM instance
         """
-        self.id = "azure_openai"
-        self.name = "Azure OpenAI"
-        self.type = [MODE_LLAMA_INDEX, "embeddings"]
+        from llama_index.llms.azure_openai import AzureOpenAI as LlamaAzureOpenAI
+        return LlamaAzureOpenAI(**args)
 
     def completion(
             self,
@@ -49,9 +60,6 @@ class AzureOpenAILLM(BaseLLM):
         :param model: model instance
         :param stream: stream mode
         :return: LLM provider instance
-
-        args = self.parse_args(model.langchain)
-        return AzureOpenAI(**args)
         """
         pass
 
@@ -68,34 +76,8 @@ class AzureOpenAILLM(BaseLLM):
         :param model: model instance
         :param stream: stream mode
         :return: LLM provider instance
-
-        args = self.parse_args(model.langchain)
-        return AzureChatOpenAI(**args)
         """
         pass
-
-    def llama(
-            self,
-            window,
-            model: ModelItem,
-            stream: bool = False
-    ) -> LlamaBaseLLM:
-        """
-        Return LLM provider instance for llama
-
-        :param window: window instance
-        :param model: model instance
-        :param stream: stream mode
-        :return: LLM provider instance
-        """
-        from llama_index.llms.azure_openai import AzureOpenAI as LlamaAzureOpenAI
-        args = self.parse_args(model.llama_index, window)
-        if "api_key" not in args:
-            args["api_key"] = window.core.config.get("api_key", "")
-        if "model" not in args:
-            args["model"] = model.id
-        args = self.inject_llamaindex_http_clients(args, window.core.config)
-        return LlamaAzureOpenAI(**args)
 
     def get_embeddings_model(
             self,

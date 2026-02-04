@@ -6,7 +6,7 @@
 # GitHub:  https://github.com/szczyglis-dev/py-gpt   #
 # MIT License                                        #
 # Created By  : Marcin Szczygliński                  #
-# Updated Date: 2025.09.17 19:00:00                  #
+# Updated Date: 2026.02.04 00:00:00                  #
 # ================================================== #
 
 from typing import Optional, Dict, List
@@ -14,19 +14,53 @@ from typing import Optional, Dict, List
 from llama_index.core.base.embeddings.base import BaseEmbedding
 from llama_index.core.llms.llm import BaseLLM as LlamaBaseLLM
 
-from pygpt_net.core.types import (
-    MODE_LLAMA_INDEX,
-)
-from pygpt_net.provider.llms.base import BaseLLM
+from pygpt_net.core.types import MODE_LLAMA_INDEX
+from pygpt_net.provider.llms.base_provider import StandardLLMProvider
 from pygpt_net.item.model import ModelItem
 
 
-class OpenRouterLLM(BaseLLM):
+class OpenRouterLLM(StandardLLMProvider):
     def __init__(self, *args, **kwargs):
-        super(OpenRouterLLM, self).__init__(*args, **kwargs)
-        self.id = "open_router"
-        self.name = "OpenRouter"
-        self.type = [MODE_LLAMA_INDEX, "embeddings"]
+        super().__init__(
+            provider_id="open_router",
+            provider_name="OpenRouter",
+            supported_modes=[MODE_LLAMA_INDEX, "embeddings"],
+            api_key_config="api_key_open_router",
+            *args,
+            **kwargs
+        )
+
+    def _create_llm_instance(
+            self,
+            args: Dict,
+            window,
+            model: ModelItem
+    ) -> LlamaBaseLLM:
+        """
+        Create OpenRouter LLM instance using OpenAILike.
+
+        :param args: Prepared arguments dict
+        :param window: Window instance
+        :param model: Model instance
+        :return: OpenAILike LLM instance
+        """
+        from llama_index.llms.openai_like import OpenAILike
+
+        # Set OpenRouter-specific API base
+        if "api_base" not in args:
+            args["api_base"] = window.core.config.get("api_endpoint_open_router", "")
+
+        # Set chat model flags
+        if "is_chat_model" not in args:
+            args["is_chat_model"] = True
+        if "is_function_calling_model" not in args:
+            args["is_function_calling_model"] = model.tool_calls
+
+        # Get OpenRouter-specific model name
+        if model:
+            args["model"] = window.core.models.get_openrouter_model(model)
+
+        return OpenAILike(**args)
 
     def get_embeddings_model(
             self,
@@ -54,37 +88,6 @@ class OpenRouterLLM(BaseLLM):
             args["model_name"] = args.pop("model")
         args = self.inject_llamaindex_http_clients(args, window.core.config)
         return OpenAILikeEmbedding(**args)
-
-    def llama(
-            self,
-            window,
-            model: ModelItem,
-            stream: bool = False
-    ) -> LlamaBaseLLM:
-        """
-        Return LLM provider instance for llama
-
-        :param window: window instance
-        :param model: model instance
-        :param stream: stream mode
-        :return: LLM provider instance
-        """
-        from llama_index.llms.openai_like import OpenAILike
-        args = self.parse_args(model.llama_index, window)
-        if "model" not in args:
-            args["model"] = model.id
-        if "api_key" not in args:
-            args["api_key"] = window.core.config.get("api_key_open_router", "")
-        if "api_base" not in args:
-            args["api_base"] = window.core.config.get("api_endpoint_open_router", "")
-        if "is_chat_model" not in args:
-            args["is_chat_model"] = True
-        if "is_function_calling_model" not in args:
-            args["is_function_calling_model"] = model.tool_calls
-        args = self.inject_llamaindex_http_clients(args, window.core.config)
-        if model:
-            args["model"] = window.core.models.get_openrouter_model(model)
-        return OpenAILike(**args)
 
     def get_models(
             self,
