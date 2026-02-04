@@ -16,7 +16,7 @@ from pygpt_net.controller.dialogs.info import Info
 
 
 class Dialogs:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Dialogs controller
 

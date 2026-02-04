@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 
 class Confirm:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Confirmation dialogs controller
 
@@ -34,267 +34,276 @@ class Confirm:
         :param id: dialog object id
         :param parent_object: dialog parent object
         """
-        self.window.ui.dialog['confirm'].close()
+        try:
+            self.window.ui.dialog['confirm'].close()
 
-        # app
-        if type == 'app.log.clear':
-            self.window.ui.dialogs.app_log.clear(force=True)
+            # app
+            if type == 'app.log.clear':
+                self.window.ui.dialogs.app_log.clear(force=True)
 
-        # presets
-        elif type == 'preset_exists':
-            self.window.controller.presets.editor.save(True)
-        elif type == 'preset_delete':
-            self.window.controller.presets.delete(id, True)
-        elif type == 'preset_clear':
-            self.window.controller.presets.clear(True)
-        elif type == 'preset_restore':
-            self.window.controller.presets.restore(True)
+            # presets
+            elif type == 'preset_exists':
+                self.window.controller.presets.editor.save(True)
+            elif type == 'preset_delete':
+                self.window.controller.presets.delete(id, True)
+            elif type == 'preset_clear':
+                self.window.controller.presets.clear(True)
+            elif type == 'preset_restore':
+                self.window.controller.presets.restore(True)
 
-        # ctx
-        elif type == 'ctx.delete':
-            self.window.controller.ctx.delete(id, True)
-        elif type == 'ctx.delete_all':
-            self.window.controller.ctx.delete_history(True)
-        elif type == 'ctx.delete_all_groups':
-            self.window.controller.ctx.delete_history_groups(True)
-        elif type == 'ctx.delete_item':
-            self.window.controller.ctx.delete_item(id, True)
-        elif type == 'ctx.replay_item':
-            self.window.controller.ctx.extra.replay_item(id, True)
-        elif type == 'ctx.join_item':
-            self.window.controller.ctx.extra.join_item(id, True)
-        elif type == 'ctx.group.delete':
-            self.window.controller.ctx.delete_group(id, True)  # group delete
-        elif type == 'ctx.group.delete.all':
-            self.window.controller.ctx.delete_group_all(id, True)  # group delete + items
-        elif type == 'ctx.reset_meta':
-            self.window.controller.ctx.common.reset(id, True)
+            # ctx
+            elif type == 'ctx.delete':
+                self.window.controller.ctx.delete(id, True)
+            elif type == 'ctx.delete_all':
+                self.window.controller.ctx.delete_history(True)
+            elif type == 'ctx.delete_all_groups':
+                self.window.controller.ctx.delete_history_groups(True)
+            elif type == 'ctx.delete_item':
+                self.window.controller.ctx.delete_item(id, True)
+            elif type == 'ctx.replay_item':
+                self.window.controller.ctx.extra.replay_item(id, True)
+            elif type == 'ctx.join_item':
+                self.window.controller.ctx.extra.join_item(id, True)
+            elif type == 'ctx.group.delete':
+                self.window.controller.ctx.delete_group(id, True)  # group delete
+            elif type == 'ctx.group.delete.all':
+                self.window.controller.ctx.delete_group_all(id, True)  # group delete + items
+            elif type == 'ctx.reset_meta':
+                self.window.controller.ctx.common.reset(id, True)
 
-        # images
-        elif type == 'img_delete':
-            self.window.tools.get("viewer").delete(id, True)
+            # images
+            elif type == 'img_delete':
+                self.window.tools.get("viewer").delete(id, True)
 
-        # agent infinity loop run
-        elif type == 'agent.infinity.run':
-            self.window.controller.chat.input.send_input(force=True)
+            # agent infinity loop run
+            elif type == 'agent.infinity.run':
+                self.window.controller.chat.input.send_input(force=True)
 
-        # interpreter
-        elif type == 'interpreter.clear':
-            self.window.tools.get("interpreter").clear(True)
+            # interpreter
+            elif type == 'interpreter.clear':
+                self.window.tools.get("interpreter").clear(True)
 
-        # html canvas
-        elif type == 'html_canvas.clear':
-            self.window.tools.get("html_canvas").clear(True)
+            # html canvas
+            elif type == 'html_canvas.clear':
+                self.window.tools.get("html_canvas").clear(True)
 
-        # translator
-        elif type == 'translator.clear':
-            self.window.tools.get("translator").clear(True)
-        elif type == 'translator.clear.left':
-            self.window.tools.get("translator").clear_left(True)
-        elif type == 'translator.clear.right':
-            self.window.tools.get("translator").clear_right(True)
+            # translator
+            elif type == 'translator.clear':
+                self.window.tools.get("translator").clear(True)
+            elif type == 'translator.clear.left':
+                self.window.tools.get("translator").clear_left(True)
+            elif type == 'translator.clear.right':
+                self.window.tools.get("translator").clear_right(True)
 
-        elif type == "preset.avatar.delete":
-            self.window.controller.presets.editor.remove_avatar(True)
+            elif type == "preset.avatar.delete":
+                self.window.controller.presets.editor.remove_avatar(True)
 
-        # audio transcribe
-        elif type == 'audio.transcribe':
-            self.window.tools.get("transcriber").transcribe(id, force=True)
-        elif type == 'audio.transcribe.clear':
-            self.window.tools.get("transcriber").clear(True)
+            # audio transcribe
+            elif type == 'audio.transcribe':
+                self.window.tools.get("transcriber").transcribe(id, force=True)
+            elif type == 'audio.transcribe.clear':
+                self.window.tools.get("transcriber").clear(True)
 
-        # audio cache clear
-        elif type == 'audio.cache.clear':
-            self.window.controller.audio.clear_cache(True)
+            # audio cache clear
+            elif type == 'audio.cache.clear':
+                self.window.controller.audio.clear_cache(True)
 
-        # restore default CSS
-        elif type == 'restore.css':
-            self.window.controller.layout.restore_default_css(force=True)
+            # restore default CSS
+            elif type == 'restore.css':
+                self.window.controller.layout.restore_default_css(force=True)
 
-        # profiles
-        elif type == 'profile.reset':
-            self.window.controller.settings.profile.reset_by_idx(id, True)
-        elif type == 'profile.delete':
-            self.window.controller.settings.profile.delete_by_idx(id, True)
-        elif type == 'profile.delete.all':
-            self.window.controller.settings.profile.delete_all_by_idx(id, True)
+            # profiles
+            elif type == 'profile.reset':
+                self.window.controller.settings.profile.reset_by_idx(id, True)
+            elif type == 'profile.delete':
+                self.window.controller.settings.profile.delete_by_idx(id, True)
+            elif type == 'profile.delete.all':
+                self.window.controller.settings.profile.delete_all_by_idx(id, True)
 
-        # db viewer
-        elif type == 'db.delete_row':
-            try:
-                self.window.core.db.viewer.delete_row(data=id)  # dict: {table, row_id}
-            except Exception as e:
-                self.window.core.debug.error(e)
-                self.window.ui.dialogs.alert(e)
-        elif type == 'db.update_row':
-            try:
-                self.window.core.db.viewer.update_row(data=id)  # dict: {table, id, field, value}
-            except Exception as e:
-                self.window.core.debug.error(e)
-                self.window.ui.dialogs.alert(e)
-        elif type == 'db.delete_all':
-            try:
-                self.window.core.db.viewer.truncate_table(data=id)  # dict: {table}
-            except Exception as e:
-                self.window.core.debug.error(e)
-                self.window.ui.dialogs.alert(e)
-        elif type == 'db.truncate_table':
-            try:
-                self.window.core.db.viewer.truncate_table(data=id, reset=True)  # dict: {table}
-            except Exception as e:
-                self.window.core.debug.error(e)
-                self.window.ui.dialogs.alert(e)
+            # db viewer
+            elif type == 'db.delete_row':
+                try:
+                    self.window.core.db.viewer.delete_row(data=id)  # dict: {table, row_id}
+                except Exception as e:
+                    self.window.core.debug.error(e)
+                    self.window.ui.dialogs.alert(e)
+            elif type == 'db.update_row':
+                try:
+                    self.window.core.db.viewer.update_row(data=id)  # dict: {table, id, field, value}
+                except Exception as e:
+                    self.window.core.debug.error(e)
+                    self.window.ui.dialogs.alert(e)
+            elif type == 'db.delete_all':
+                try:
+                    self.window.core.db.viewer.truncate_table(data=id)  # dict: {table}
+                except Exception as e:
+                    self.window.core.debug.error(e)
+                    self.window.ui.dialogs.alert(e)
+            elif type == 'db.truncate_table':
+                try:
+                    self.window.core.db.viewer.truncate_table(data=id, reset=True)  # dict: {table}
+                except Exception as e:
+                    self.window.core.debug.error(e)
+                    self.window.ui.dialogs.alert(e)
 
-        # attachments
-        elif type == 'attachments.delete':
-            self.window.controller.attachment.delete(id, force=True, remove_local=True)
-        elif type == 'attachments.uploaded.clear':
-            self.window.controller.assistant.files.clear(True)
-        elif type == 'attachments.uploaded.delete':
-            self.window.controller.assistant.files.delete(id, True)
-        elif type == 'attachments.clear':
-            self.window.controller.attachment.clear(force=True, remove_local=True)
-        elif type == 'attachments.ctx.clear':
-            self.window.controller.chat.attachment.clear(force=True, remove_local=True)
-        elif type == 'attachments.ctx.delete':
-            self.window.controller.chat.attachment.delete_by_idx(id, force=True, remove_local=True)
+            # attachments
+            elif type == 'attachments.delete':
+                self.window.controller.attachment.delete(id, force=True, remove_local=True)
+            elif type == 'attachments.uploaded.clear':
+                self.window.controller.assistant.files.clear(True)
+            elif type == 'attachments.uploaded.delete':
+                self.window.controller.assistant.files.delete(id, True)
+            elif type == 'attachments.clear':
+                self.window.controller.attachment.clear(force=True, remove_local=True)
+            elif type == 'attachments.ctx.clear':
+                self.window.controller.chat.attachment.clear(force=True, remove_local=True)
+            elif type == 'attachments.ctx.delete':
+                self.window.controller.chat.attachment.delete_by_idx(id, force=True, remove_local=True)
 
-        # files
-        elif type == 'files.delete':
-            self.window.controller.files.delete(id, True)
-        elif type == 'files.delete.recursive':
-            self.window.controller.files.delete_recursive(id, True)
+            # files
+            elif type == 'files.delete':
+                self.window.controller.files.delete(id, True)
+            elif type == 'files.delete.recursive':
+                self.window.controller.files.delete_recursive(id, True)
 
-        # workdir change dialog
-        elif type == 'workdir.change':
-            self.window.controller.settings.workdir.migrate(id, True)
-        elif type == 'workdir.update':
-            self.window.controller.settings.workdir.update(id, True)
+            # workdir change dialog
+            elif type == 'workdir.change':
+                self.window.controller.settings.workdir.migrate(id, True)
+            elif type == 'workdir.update':
+                self.window.controller.settings.workdir.update(id, True)
 
-        # tab close all
-        elif type == 'tab.close_all':
-            self.window.controller.ui.tabs.close_all(id, 0, True)  # by type
+            # tab close all
+            elif type == 'tab.close_all':
+                self.window.controller.ui.tabs.close_all(id, 0, True)  # by type
 
-        # editor
-        elif type == 'editor.changed.clear':
-            self.window.tools.get("editor").clear(id=id, force=True, save=True)
-        elif type == 'editor.changed.open':
-            self.window.tools.get("editor").open_file(id=id, force=True, save=True)
-        elif type == 'editor.changed.close':
-            self.window.tools.get("editor").close(id, save=True)
-        elif type == 'editor.changed.restore':
-            self.window.tools.get("editor").restore(id=id, force=True, save=True)
+            # editor
+            elif type == 'editor.changed.clear':
+                self.window.tools.get("editor").clear(id=id, force=True, save=True)
+            elif type == 'editor.changed.open':
+                self.window.tools.get("editor").open_file(id=id, force=True, save=True)
+            elif type == 'editor.changed.close':
+                self.window.tools.get("editor").close(id, save=True)
+            elif type == 'editor.changed.restore':
+                self.window.tools.get("editor").restore(id=id, force=True, save=True)
 
-        # assistants
-        elif type == 'assistant.delete':
-            self.window.controller.assistant.delete(id, True)
-        elif type == 'assistant.import':
-            self.window.controller.assistant.batch.import_assistants(True)
-        elif type == 'assistant.functions.import':
-            self.window.controller.assistant.editor.import_functions(True)
-        elif type == 'assistant.functions.clear':
-            self.window.controller.assistant.editor.clear_functions(True)
+            # assistants
+            elif type == 'assistant.delete':
+                self.window.controller.assistant.delete(id, True)
+            elif type == 'assistant.import':
+                self.window.controller.assistant.batch.import_assistants(True)
+            elif type == 'assistant.functions.import':
+                self.window.controller.assistant.editor.import_functions(True)
+            elif type == 'assistant.functions.clear':
+                self.window.controller.assistant.editor.clear_functions(True)
 
-        # Remote vector stores
-        elif type == 'remote_store.delete':
-            self.window.controller.remote_store.delete(id, True)        
-        elif type == 'remote_store.import':
-            self.window.controller.remote_store.batch.import_stores(True)
-        elif type == 'remote_store.truncate':
-            self.window.controller.remote_store.batch.truncate_stores(True)
-        elif type == 'remote_store.clear':
-            self.window.controller.remote_store.batch.clear_stores(True)
-        elif type == 'remote_store.refresh':
-            self.window.controller.remote_store.batch.refresh_stores(True)
-        
-        elif type == 'remote_store.file.delete':
-            self.window.controller.remote_store.delete_file_by_idx(id, True)
-        elif type == 'remote_store.files.upload':
-            self.window.controller.remote_store.batch.upload(True)
-        elif type == 'remote_store.files.import.all':
-            self.window.controller.remote_store.batch.import_files(True)
-        elif type == 'remote_store.files.import.store':
-            self.window.controller.remote_store.batch.import_store_files(id, True)
-        elif type == 'remote_store.files.import.assistant.current':
-            self.window.controller.remote_store.batch.import_files_assistant_current(True) # from current assistant       
-        elif type == 'remote_store.files.import.assistant.all':
-            self.window.controller.remote_store.batch.import_files_assistant_all(True) # from all assistants  
-        elif type == 'remote_store.files.truncate':
-            self.window.controller.remote_store.batch.truncate_files(True)
-        elif type == 'remote_store.files.truncate.store':
-            self.window.controller.remote_store.batch.truncate_store_files(id, True)
-        elif type == 'remote_store.files.clear.all':
-            self.window.controller.remote_store.batch.clear_files(True)
-        elif type == 'remote_store.files.clear.store':
-            self.window.controller.remote_store.batch.clear_store_files(id, True)
+            # Remote vector stores
+            elif type == 'remote_store.delete':
+                self.window.controller.remote_store.delete(id, True)        
+            elif type == 'remote_store.import':
+                self.window.controller.remote_store.batch.import_stores(True)
+            elif type == 'remote_store.truncate':
+                self.window.controller.remote_store.batch.truncate_stores(True)
+            elif type == 'remote_store.clear':
+                self.window.controller.remote_store.batch.clear_stores(True)
+            elif type == 'remote_store.refresh':
+                self.window.controller.remote_store.batch.refresh_stores(True)
+            
+            elif type == 'remote_store.file.delete':
+                self.window.controller.remote_store.delete_file_by_idx(id, True)
+            elif type == 'remote_store.files.upload':
+                self.window.controller.remote_store.batch.upload(True)
+            elif type == 'remote_store.files.import.all':
+                self.window.controller.remote_store.batch.import_files(True)
+            elif type == 'remote_store.files.import.store':
+                self.window.controller.remote_store.batch.import_store_files(id, True)
+            elif type == 'remote_store.files.import.assistant.current':
+                self.window.controller.remote_store.batch.import_files_assistant_current(True) # from current assistant       
+            elif type == 'remote_store.files.import.assistant.all':
+                self.window.controller.remote_store.batch.import_files_assistant_all(True) # from all assistants  
+            elif type == 'remote_store.files.truncate':
+                self.window.controller.remote_store.batch.truncate_files(True)
+            elif type == 'remote_store.files.truncate.store':
+                self.window.controller.remote_store.batch.truncate_store_files(id, True)
+            elif type == 'remote_store.files.clear.all':
+                self.window.controller.remote_store.batch.clear_files(True)
+            elif type == 'remote_store.files.clear.store':
+                self.window.controller.remote_store.batch.clear_store_files(id, True)
 
-        # settings
-        elif type == 'settings.defaults.user':
-            self.window.controller.settings.editor.load_defaults_user(True)
-        elif type == 'settings.defaults.app':
-            self.window.controller.settings.editor.load_defaults_app(True)
-        elif type == 'settings.dict.delete':
-            self.window.controller.config.dictionary.delete_item(parent_object, id, True)
+            # settings
+            elif type == 'settings.defaults.user':
+                self.window.controller.settings.editor.load_defaults_user(True)
+            elif type == 'settings.defaults.app':
+                self.window.controller.settings.editor.load_defaults_app(True)
+            elif type == 'settings.dict.delete':
+                self.window.controller.config.dictionary.delete_item(parent_object, id, True)
 
-        # settings / file editor
-        elif type == 'settings.editor.defaults.user':
-            self.window.controller.settings.editor.load_editor_defaults_user(True)
-        elif type == 'settings.editor.defaults.app':
-            self.window.controller.settings.editor.load_editor_defaults_app(True)
+            # settings / file editor
+            elif type == 'settings.editor.defaults.user':
+                self.window.controller.settings.editor.load_editor_defaults_user(True)
+            elif type == 'settings.editor.defaults.app':
+                self.window.controller.settings.editor.load_editor_defaults_app(True)
 
-        # plugins
-        elif type == 'plugin.settings.defaults.user':
-            self.window.controller.plugins.settings.load_defaults_user(True)
-        elif type == 'plugin.settings.defaults.app':
-            self.window.controller.plugins.settings.load_defaults_app(True)
+            # plugins
+            elif type == 'plugin.settings.defaults.user':
+                self.window.controller.plugins.settings.load_defaults_user(True)
+            elif type == 'plugin.settings.defaults.app':
+                self.window.controller.plugins.settings.load_defaults_app(True)
 
-        # plugins presets
-        elif type == 'plugin.presets.delete':
-            self.window.controller.plugins.presets.delete_by_idx(id, True)
-        elif type == 'plugin.presets.reset':
-            self.window.controller.plugins.presets.reset_by_idx(id, True)
+            # plugins presets
+            elif type == 'plugin.presets.delete':
+                self.window.controller.plugins.presets.delete_by_idx(id, True)
+            elif type == 'plugin.presets.reset':
+                self.window.controller.plugins.presets.reset_by_idx(id, True)
 
-        # models
-        elif type == 'models.editor.delete':
-            self.window.controller.model.editor.delete_by_idx(id, True)
-        elif type == 'models.editor.defaults.user':
-            self.window.controller.model.editor.load_defaults_user(True)
-        elif type == 'models.editor.defaults.app':
-            self.window.controller.model.editor.load_defaults_app(True)
+            # models
+            elif type == 'models.editor.delete':
+                self.window.controller.model.editor.delete_by_idx(id, True)
+            elif type == 'models.editor.defaults.user':
+                self.window.controller.model.editor.load_defaults_user(True)
+            elif type == 'models.editor.defaults.app':
+                self.window.controller.model.editor.load_defaults_app(True)
 
-        # index
-        elif type == 'idx.index.file':
-            self.window.controller.idx.indexer.index_file_confirm(id)  # id = path
-        elif type == 'idx.index.files.all':
-            self.window.controller.idx.indexer.index_all_files(id, True)
-        elif type == 'idx.index.file.remove':
-            self.window.controller.idx.indexer.index_file_remove_confirm(id)  # id = path
-        elif type == 'idx.index.ctx.remove':
-            self.window.controller.idx.indexer.index_ctx_meta_remove(idx="", meta_id=id, force=True)  # id = ctx meta id
-        elif type == 'idx.index.db':
-            self.window.controller.idx.indexer.index_ctx_meta_confirm(id)
-        elif type == 'idx.index.db.all':
-            self.window.controller.idx.indexer.index_ctx_from_ts_confirm(id)
-        elif type == 'idx.clear':
-            self.window.controller.idx.indexer.clear(id, True)
-        elif type == 'idx.truncate':
-            self.window.controller.idx.indexer.truncate(id, True)
+            # index
+            elif type == 'idx.index.file':
+                self.window.controller.idx.indexer.index_file_confirm(id)  # id = path
+            elif type == 'idx.index.files.all':
+                self.window.controller.idx.indexer.index_all_files(id, True)
+            elif type == 'idx.index.file.remove':
+                self.window.controller.idx.indexer.index_file_remove_confirm(id)  # id = path
+            elif type == 'idx.index.ctx.remove':
+                self.window.controller.idx.indexer.index_ctx_meta_remove(idx="", meta_id=id, force=True)  # id = ctx meta id
+            elif type == 'idx.index.db':
+                self.window.controller.idx.indexer.index_ctx_meta_confirm(id)
+            elif type == 'idx.index.db.all':
+                self.window.controller.idx.indexer.index_ctx_from_ts_confirm(id)
+            elif type == 'idx.clear':
+                self.window.controller.idx.indexer.clear(id, True)
+            elif type == 'idx.truncate':
+                self.window.controller.idx.indexer.truncate(id, True)
 
-        # index tool
-        elif type == 'idx.tool.truncate':
-            self.window.tools.get("indexer").delete_db_idx(id, True)
-        elif type == 'idx.tool.index':
-            self.window.tools.get("indexer").index_data(True)
+            # index tool
+            elif type == 'idx.tool.truncate':
+                self.window.tools.get("indexer").delete_db_idx(id, True)
+            elif type == 'idx.tool.index':
+                self.window.tools.get("indexer").index_data(True)
 
-        # prompt delete
-        elif type == 'prompt.custom.delete':
-            self.window.controller.presets.delete_prompt(id, True)
+            # prompt delete
+            elif type == 'prompt.custom.delete':
+                self.window.controller.presets.delete_prompt(id, True)
 
-        elif type == 'agent.builder.agent.delete':
-            self.window.tools.get("agent_builder").delete_agent(id, True)
+            elif type == 'agent.builder.agent.delete':
+                self.window.tools.get("agent_builder").delete_agent(id, True)
 
-        elif type == 'agent.builder.agent.clear':
-            self.window.tools.get("agent_builder").clear(True)
+            elif type == 'agent.builder.agent.clear':
+                self.window.tools.get("agent_builder").clear(True)
+        except KeyError as e:
+            self.window.core.error_handler.handle(e, "dialogs.confirm.accept")
+        except AttributeError as e:
+            self.window.core.error_handler.handle(e, "dialogs.confirm.accept")
+        except RuntimeError as e:
+            self.window.core.error_handler.handle(e, "dialogs.confirm.accept")
+        except Exception as e:
+            self.window.core.error_handler.handle(e, "dialogs.confirm.accept")
 
     def dismiss(self, type: str, id: Any):
         """

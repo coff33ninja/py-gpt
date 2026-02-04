@@ -18,7 +18,7 @@ from pygpt_net.utils import trans
 
 
 class Editor:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Model editor controller
 
@@ -303,64 +303,75 @@ class Editor:
         :param persist: persist to file and close dialog
         :param force: force save without validation
         """
-        options = copy.deepcopy(self.get_options())  # copy options
-        data_dict = {}
+        try:
+            options = copy.deepcopy(self.get_options())  # copy options
+            data_dict = {}
 
-        # base fields
-        for key in options:
-            if key in self.custom_fields:
-                continue
-            value = self.window.controller.config.get_value(
-                parent_id="model",
-                key=key,
-                option=options[key],
-            )
-            data_dict[key] = value
-
-        # custom fields
-        if "extra_json" in options:
-            extra_json = self.window.controller.config.get_value(
-                parent_id="model",
-                key="extra_json",
-                option=options["extra_json"],
-            )
-            try:
-                if extra_json:
-                    decoded = json.loads(extra_json)
-                    data_dict["extra"] = decoded
-                else:
-                    data_dict["extra"] = {}
-            except json.JSONDecodeError as error:
-                self.window.ui.dialogs.alert(
-                    "JSON decoding error in 'extra' field. Please check the syntax:\n\n{}".format(error)
+            # base fields
+            for key in options:
+                if key in self.custom_fields:
+                    continue
+                value = self.window.controller.config.get_value(
+                    parent_id="model",
+                    key=key,
+                    option=options[key],
                 )
-                if not force:
-                    return # if JSON is invalid, do not save
+                data_dict[key] = value
 
-        # update current model
-        if self.current in self.window.core.models.items:
-            self.window.core.models.items[self.current].from_dict(data_dict)
+            # custom fields
+            if "extra_json" in options:
+                extra_json = self.window.controller.config.get_value(
+                    parent_id="model",
+                    key="extra_json",
+                    option=options["extra_json"],
+                )
+                try:
+                    if extra_json:
+                        decoded = json.loads(extra_json)
+                        data_dict["extra"] = decoded
+                    else:
+                        data_dict["extra"] = {}
+                except json.JSONDecodeError as error:
+                    self.window.ui.dialogs.alert(
+                        "JSON decoding error in 'extra' field. Please check the syntax:\n\n{}".format(error)
+                    )
+                    if not force:
+                        return # if JSON is invalid, do not save
+
+            # update current model
+            if self.current in self.window.core.models.items:
+                self.window.core.models.items[self.current].from_dict(data_dict)
+                if persist:
+                    # change key to model ID if key not exists
+                    old_key = self.current
+                    new_key = self.window.core.models.items[self.current].id
+                    if old_key != new_key:
+                        if new_key not in self.window.core.models.items:
+                            self.window.core.models.items[new_key] = self.window.core.models.items.pop(old_key)
+                            self.current = new_key  # switch current key
+
+            # save config
             if persist:
-                # change key to model ID if key not exists
-                old_key = self.current
-                new_key = self.window.core.models.items[self.current].id
-                if old_key != new_key:
-                    if new_key not in self.window.core.models.items:
-                        self.window.core.models.items[new_key] = self.window.core.models.items.pop(old_key)
-                        self.current = new_key  # switch current key
+                self.window.core.models.save()
+                self.close()
+                self.window.update_status(trans("info.settings.saved"))
 
-        # save config
-        if persist:
-            self.window.core.models.save()
-            self.close()
-            self.window.update_status(trans("info.settings.saved"))
+            self.window.core.models.sort_items()
+            self.window.controller.model.reload()
 
-        self.window.core.models.sort_items()
-        self.window.controller.model.reload()
-
-        # dispatch on update event
-        event = Event(Event.MODELS_CHANGED)
-        self.window.dispatch(event, all=True)
+            # dispatch on update event
+            event = Event(Event.MODELS_CHANGED)
+            self.window.dispatch(event, all=True)
+        except PermissionError as e:
+            self.window.core.error_handler.handle(e, "model.editor.save")
+        except OSError as e:
+            self.window.core.error_handler.handle(e, "model.editor.save")
+        except KeyError as e:
+            self.window.core.error_handler.handle(e, "model.editor.save")
+        except AttributeError as e:
+            self.window.core.error_handler.handle(e, "model.editor.save")
+        except Exception as e:
+            self.window.core.error_handler.handle(e, "model.editor.save")
 
     def prepare_items(self) -> dict:
         """

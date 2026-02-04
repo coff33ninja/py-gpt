@@ -22,7 +22,7 @@ class Tabs:
 
     TAB_CHAT_MAX_CHARS = 15  # max chars for chat tab title
 
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         UI tabs controller
 

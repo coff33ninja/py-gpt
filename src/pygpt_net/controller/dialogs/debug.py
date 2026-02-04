@@ -36,7 +36,7 @@ class Debug:
 
     DBG_KEY, DBG_VALUE = range(2)
 
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Debugger handler
 

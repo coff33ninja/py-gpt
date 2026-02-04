@@ -24,7 +24,7 @@ from pygpt_net.utils import trans
 
 
 class Input:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Input controller
 

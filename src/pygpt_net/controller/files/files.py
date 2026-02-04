@@ -25,7 +25,7 @@ from pygpt_net.utils import trans
 
 
 class Files:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Files controller
 
@@ -63,7 +63,17 @@ class Files:
                 f"[OK] Deleted directory: {os.path.basename(path)}"
             )
             self.update_explorer()
+        except FileNotFoundError as e:
+            self.window.core.error_handler.handle(e, "files.delete_recursive.not_found")
+            print(f"Error deleting directory: {path} - {e}")
+        except PermissionError as e:
+            self.window.core.error_handler.handle(e, "files.delete_recursive.permission")
+            print(f"Error deleting directory: {path} - {e}")
+        except OSError as e:
+            self.window.core.error_handler.handle(e, "files.delete_recursive.os_error")
+            print(f"Error deleting directory: {path} - {e}")
         except Exception as e:
+            self.window.core.error_handler.handle(e, "files.delete_recursive")
             self.window.core.debug.log(e)
             print(f"Error deleting directory: {path} - {e}")
 
@@ -96,7 +106,17 @@ class Files:
                 f"[OK] Created file: {filepath}"
             )
             self.update_explorer()
+        except FileNotFoundError as e:
+            self.window.core.error_handler.handle(e, "files.touch_file.not_found")
+            print(f"Error creating file: {path} - {e}")
+        except PermissionError as e:
+            self.window.core.error_handler.handle(e, "files.touch_file.permission")
+            print(f"Error creating file: {path} - {e}")
+        except OSError as e:
+            self.window.core.error_handler.handle(e, "files.touch_file.os_error")
+            print(f"Error creating file: {path} - {e}")
         except Exception as e:
+            self.window.core.error_handler.handle(e, "files.touch_file")
             self.window.core.debug.log(e)
             print(f"Error creating file: {path} - {e}")
 
@@ -138,7 +158,17 @@ class Files:
                    f"[OK] Deleted file: {os.path.basename(path)}"
                 )
                 self.update_explorer()
+            except FileNotFoundError as e:
+                self.window.core.error_handler.handle(e, "files.delete.not_found")
+                print(f"Error deleting file: {path} - {e}")
+            except PermissionError as e:
+                self.window.core.error_handler.handle(e, "files.delete.permission")
+                print(f"Error deleting file: {path} - {e}")
+            except OSError as e:
+                self.window.core.error_handler.handle(e, "files.delete.os_error")
+                print(f"Error deleting file: {path} - {e}")
             except Exception as e:
+                self.window.core.error_handler.handle(e, "files.delete")
                 self.window.core.debug.log(e)
                 print(f"Error deleting file: {path} - {e}")
 
@@ -199,7 +229,17 @@ class Files:
                 f"[OK] Duplicated file: {os.path.basename(path)} -> {name}"
             )
             self.update_explorer()
+        except FileNotFoundError as e:
+            self.window.core.error_handler.handle(e, "files.duplicate_local.not_found")
+            print(f"Error duplicating file: {path} - {e}")
+        except PermissionError as e:
+            self.window.core.error_handler.handle(e, "files.duplicate_local.permission")
+            print(f"Error duplicating file: {path} - {e}")
+        except OSError as e:
+            self.window.core.error_handler.handle(e, "files.duplicate_local.os_error")
+            print(f"Error duplicating file: {path} - {e}")
         except Exception as e:
+            self.window.core.error_handler.handle(e, "files.duplicate_local")
             self.window.core.debug.log(e)
             print(f"Error duplicating file: {path} - {e}")
 
@@ -292,7 +332,17 @@ class Files:
                     self.window.update_status(
                         f"[OK] Downloaded file: {os.path.basename(path)}"
                     )
+                except FileNotFoundError as e:
+                    self.window.core.error_handler.handle(e, "files.download_local.not_found")
+                    print(f"Error downloading file: {path} - {e}")
+                except PermissionError as e:
+                    self.window.core.error_handler.handle(e, "files.download_local.permission")
+                    print(f"Error downloading file: {path} - {e}")
+                except OSError as e:
+                    self.window.core.error_handler.handle(e, "files.download_local.os_error")
+                    print(f"Error downloading file: {path} - {e}")
                 except Exception as e:
+                    self.window.core.error_handler.handle(e, "files.download_local")
                     self.window.core.debug.log(e)
                     print(f"Error downloading file: {path} - {e}")
 
@@ -345,7 +395,17 @@ class Files:
                             )
                         copy2(file_path, target_path)
                         num += 1
+                    except FileNotFoundError as e:
+                        self.window.core.error_handler.handle(e, "files.upload_local.not_found")
+                        print(f"Error copying file {file_path}: {e}")
+                    except PermissionError as e:
+                        self.window.core.error_handler.handle(e, "files.upload_local.permission")
+                        print(f"Error copying file {file_path}: {e}")
+                    except OSError as e:
+                        self.window.core.error_handler.handle(e, "files.upload_local.os_error")
+                        print(f"Error copying file {file_path}: {e}")
                     except Exception as e:
+                        self.window.core.error_handler.handle(e, "files.upload_local")
                         self.window.core.debug.log(e)
                         print(f"Error copying file {file_path}: {e}")
                 if num > 0:

@@ -30,7 +30,7 @@ from pygpt_net.utils import trans
 
 class Importer:
 
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Models importer controller
 
@@ -412,177 +412,194 @@ class Importer:
         :return: Provider API models dictionary
         """
         models = {}
-        if not self.provider or self.provider == "_":
-            return models
-        llm = self.window.core.llm.get(self.provider)
-        if llm is None:
-            return models
-        models_list = llm.get_models(self.window)
-        if not models_list or not isinstance(models_list, list):
-            return models
-        for model in models_list:
-            if "id" not in model:
-                continue
-            id = model.get('id')
-            name = model.get('id')
-            if "name" in model:
-                name = model.get('name')
-            m, _ = self.window.core.models.create_empty(append=False)
-            m.id = id
-            m.name = name
-            m.mode = [
-                MODE_CHAT,
-                MODE_LLAMA_INDEX,
-                MODE_AGENT,
-                MODE_AGENT_LLAMA,
-                MODE_AGENT_OPENAI,
-                MODE_EXPERT,
-            ]
-            m.provider = self.provider
-            m.input = ["text"]
-            m.output = ["text"]
-            llama_id = id
-            if self.provider == "google":
-                llama_id = "models/" + id
-            m.llama_index['args'] = [
-                {
-                    'name': 'model',
-                    'value': llama_id,
-                    'type': 'str'
-                }
-            ]
-            m.imported = True
-            m.ctx = 128000 # default context size
-            key = m.id
+        try:
+            if not self.provider or self.provider == "_":
+                return models
+            llm = self.window.core.llm.get(self.provider)
+            if llm is None:
+                return models
+            models_list = llm.get_models(self.window)
+            if not models_list or not isinstance(models_list, list):
+                return models
+            for model in models_list:
+                if "id" not in model:
+                    continue
+                id = model.get('id')
+                name = model.get('id')
+                if "name" in model:
+                    name = model.get('name')
+                m, _ = self.window.core.models.create_empty(append=False)
+                m.id = id
+                m.name = name
+                m.mode = [
+                    MODE_CHAT,
+                    MODE_LLAMA_INDEX,
+                    MODE_AGENT,
+                    MODE_AGENT_LLAMA,
+                    MODE_AGENT_OPENAI,
+                    MODE_EXPERT,
+                ]
+                m.provider = self.provider
+                m.input = ["text"]
+                m.output = ["text"]
+                llama_id = id
+                if self.provider == "google":
+                    llama_id = "models/" + id
+                m.llama_index['args'] = [
+                    {
+                        'name': 'model',
+                        'value': llama_id,
+                        'type': 'str'
+                    }
+                ]
+                m.imported = True
+                m.ctx = 128000 # default context size
+                key = m.id
 
-            # prepare args and env config by provider
-            if self.provider == "anthropic":
-                m.tool_calls = True
-                m.llama_index['env'] = [
-                    {
-                        'name': 'ANTHROPIC_API_KEY',
-                        'value': '{api_key_anthropic}',
-                        'type': 'str'
-                    }
-                ]
-            elif self.provider == "deepseek_api":
-                m.tool_calls = True
-                m.llama_index['args'].append(
-                    {
-                        'name': 'api_key',
-                        'value': '{api_key_deepseek}',
-                        'type': 'str'
-                    }
-                )
-                m.llama_index['env'] = [
-                    {
-                        'name': 'DEEPSEEK_API_KEY',
-                        'value': '{api_key_deepseek}',
-                        'type': 'str'
-                    }
-                ]
-            elif self.provider == "google":
-                m.tool_calls = True
-                m.llama_index['env'] = [
-                    {
-                        'name': 'GOOGLE_API_KEY',
-                        'value': '{api_key_google}',
-                        'type': 'str'
-                    }
-                ]
-            elif self.provider in ["openai", "azure_openai"]:
-                m.tool_calls = True
-                m.llama_index['env'] = [
-                    {
-                        'name': 'OPENAI_API_KEY',
-                        'value': '{api_key}',
-                        'type': 'str'
-                    },
-                    {
-                        'name': 'OPENAI_API_BASE',
-                        'value': '{api_endpoint}',
-                        'type': 'str'
-                    },
-                    {
-                        'name': 'AZURE_OPENAI_ENDPOINT',
-                        'value': '{api_azure_endpoint}',
-                        'type': 'str'
-                    },
-                    {
-                        'name': 'OPENAI_API_VERSION',
-                        'value': '{api_azure_version}',
-                        'type': 'str'
-                    }
-                ]
-            elif self.provider == "perplexity":
-                m.tool_calls = True
-                m.llama_index['env'] = [
-                    {
-                        'name': 'OPENAI_API_KEY',
-                        'value': '{api_key_perplexity}',
-                        'type': 'str'
-                    },
-                    {
-                        'name': 'OPENAI_API_BASE',
-                        'value': '{api_endpoint_perplexity}',
-                        'type': 'str'
-                    }
-                ]
-            elif self.provider == "mistral_ai":
-                m.tool_calls = True
-                m.llama_index['args'].append(
-                    {
-                        'name': 'api_key',
-                        'value': '{api_key_mistral}',
-                        'type': 'str'
-                    }
-                )
-            elif self.provider == "local_ai":
-                m.tool_calls = True
-                m.llama_index['env'] = [
-                    {
-                        'name': 'OPENAI_API_KEY',
-                        'value': '{api_key}',
-                        'type': 'str'
-                    },
-                    {
-                        'name': 'OPENAI_API_BASE',
-                        'value': '{api_endpoint}',
-                        'type': 'str'
-                    }
-                ]
-            elif self.provider == "open_router":
-                m.tool_calls = True
-                m.llama_index['env'] = [
-                    {
-                        'name': 'OPENAI_API_KEY',
-                        'value': '{api_key_open_router}',
-                        'type': 'str'
-                    },
-                    {
-                        'name': 'OPENAI_API_BASE',
-                        'value': '{api_endpoint_open_router}',
-                        'type': 'str'
-                    }
-                ]
-            elif self.provider == "x_ai":
-                m.tool_calls = True
-                m.llama_index['env'] = [
-                    {
-                        'name': 'OPENAI_API_KEY',
-                        'value': '{api_key_xai}',
-                        'type': 'str'
-                    },
-                    {
-                        'name': 'OPENAI_API_BASE',
-                        'value': '{api_endpoint_xai}',
-                        'type': 'str'
-                    }
-                ]
-            models[key] = m
-        provider_name = self.window.core.llm.get_provider_name(self.provider)
-        self.set_status(trans('models.importer.loaded').replace("{provider}", provider_name))
-        return models
+                # prepare args and env config by provider
+                if self.provider == "anthropic":
+                    m.tool_calls = True
+                    m.llama_index['env'] = [
+                        {
+                            'name': 'ANTHROPIC_API_KEY',
+                            'value': '{api_key_anthropic}',
+                            'type': 'str'
+                        }
+                    ]
+                elif self.provider == "deepseek_api":
+                    m.tool_calls = True
+                    m.llama_index['args'].append(
+                        {
+                            'name': 'api_key',
+                            'value': '{api_key_deepseek}',
+                            'type': 'str'
+                        }
+                    )
+                    m.llama_index['env'] = [
+                        {
+                            'name': 'DEEPSEEK_API_KEY',
+                            'value': '{api_key_deepseek}',
+                            'type': 'str'
+                        }
+                    ]
+                elif self.provider == "google":
+                    m.tool_calls = True
+                    m.llama_index['env'] = [
+                        {
+                            'name': 'GOOGLE_API_KEY',
+                            'value': '{api_key_google}',
+                            'type': 'str'
+                        }
+                    ]
+                elif self.provider in ["openai", "azure_openai"]:
+                    m.tool_calls = True
+                    m.llama_index['env'] = [
+                        {
+                            'name': 'OPENAI_API_KEY',
+                            'value': '{api_key}',
+                            'type': 'str'
+                        },
+                        {
+                            'name': 'OPENAI_API_BASE',
+                            'value': '{api_endpoint}',
+                            'type': 'str'
+                        },
+                        {
+                            'name': 'AZURE_OPENAI_ENDPOINT',
+                            'value': '{api_azure_endpoint}',
+                            'type': 'str'
+                        },
+                        {
+                            'name': 'OPENAI_API_VERSION',
+                            'value': '{api_azure_version}',
+                            'type': 'str'
+                        }
+                    ]
+                elif self.provider == "perplexity":
+                    m.tool_calls = True
+                    m.llama_index['env'] = [
+                        {
+                            'name': 'OPENAI_API_KEY',
+                            'value': '{api_key_perplexity}',
+                            'type': 'str'
+                        },
+                        {
+                            'name': 'OPENAI_API_BASE',
+                            'value': '{api_endpoint_perplexity}',
+                            'type': 'str'
+                        }
+                    ]
+                elif self.provider == "mistral_ai":
+                    m.tool_calls = True
+                    m.llama_index['args'].append(
+                        {
+                            'name': 'api_key',
+                            'value': '{api_key_mistral}',
+                            'type': 'str'
+                        }
+                    )
+                elif self.provider == "local_ai":
+                    m.tool_calls = True
+                    m.llama_index['env'] = [
+                        {
+                            'name': 'OPENAI_API_KEY',
+                            'value': '{api_key}',
+                            'type': 'str'
+                        },
+                        {
+                            'name': 'OPENAI_API_BASE',
+                            'value': '{api_endpoint}',
+                            'type': 'str'
+                        }
+                    ]
+                elif self.provider == "open_router":
+                    m.tool_calls = True
+                    m.llama_index['env'] = [
+                        {
+                            'name': 'OPENAI_API_KEY',
+                            'value': '{api_key_open_router}',
+                            'type': 'str'
+                        },
+                        {
+                            'name': 'OPENAI_API_BASE',
+                            'value': '{api_endpoint_open_router}',
+                            'type': 'str'
+                        }
+                    ]
+                elif self.provider == "x_ai":
+                    m.tool_calls = True
+                    m.llama_index['env'] = [
+                        {
+                            'name': 'OPENAI_API_KEY',
+                            'value': '{api_key_xai}',
+                            'type': 'str'
+                        },
+                        {
+                            'name': 'OPENAI_API_BASE',
+                            'value': '{api_endpoint_xai}',
+                            'type': 'str'
+                        }
+                    ]
+                models[key] = m
+            provider_name = self.window.core.llm.get_provider_name(self.provider)
+            self.set_status(trans('models.importer.loaded').replace("{provider}", provider_name))
+            return models
+        except ConnectionError as e:
+            self.window.core.error_handler.handle(e, "model.importer.get_provider_available")
+            self.set_status(str(e))
+            return {}
+        except TimeoutError as e:
+            self.window.core.error_handler.handle(e, "model.importer.get_provider_available")
+            self.set_status(str(e))
+            return {}
+        except RuntimeError as e:
+            self.window.core.error_handler.handle(e, "model.importer.get_provider_available")
+            self.set_status(str(e))
+            return {}
+        except Exception as e:
+            self.window.core.error_handler.handle(e, "model.importer.get_provider_available")
+            self.set_status(str(e))
+            return {}
 
     def get_ollama_available(self) -> Dict:
         """
@@ -633,30 +650,39 @@ class Importer:
 
     def from_pending(self):
         """Move pending models to base list"""
-        added = False
-        base_models = self.window.core.models.items
-        for key in list(self.pending.keys()):
-            if key not in base_models:
-                base_models[key] = copy.deepcopy(self.pending[key])
-                base_models[key].imported = True
-                added = True
-            else:
-                # add provider suffix - to key
-                new_key = f"{key}-{self.provider}"
-                if new_key not in base_models:
-                    base_models[new_key] = copy.deepcopy(self.pending[key])
-                    base_models[new_key].imported = True
+        try:
+            added = False
+            base_models = self.window.core.models.items
+            for key in list(self.pending.keys()):
+                if key not in base_models:
+                    base_models[key] = copy.deepcopy(self.pending[key])
+                    base_models[key].imported = True
                     added = True
-        for key in list(self.removed.keys()):
-            if key in base_models:
-                del base_models[key]
-                added = True
-        self.pending = {}
-        self.removed = {}
-        if added:
-            self.window.core.models.sort_items()
-            self.window.core.models.save()
-            self.set_status(trans('models.importer.status.imported'))
+                else:
+                    # add provider suffix - to key
+                    new_key = f"{key}-{self.provider}"
+                    if new_key not in base_models:
+                        base_models[new_key] = copy.deepcopy(self.pending[key])
+                        base_models[new_key].imported = True
+                        added = True
+            for key in list(self.removed.keys()):
+                if key in base_models:
+                    del base_models[key]
+                    added = True
+            self.pending = {}
+            self.removed = {}
+            if added:
+                self.window.core.models.sort_items()
+                self.window.core.models.save()
+                self.set_status(trans('models.importer.status.imported'))
+        except PermissionError as e:
+            self.window.core.error_handler.handle(e, "model.importer.from_pending")
+        except OSError as e:
+            self.window.core.error_handler.handle(e, "model.importer.from_pending")
+        except KeyError as e:
+            self.window.core.error_handler.handle(e, "model.importer.from_pending")
+        except Exception as e:
+            self.window.core.error_handler.handle(e, "model.importer.from_pending")
 
     def save(self, persist: bool = True):
         """

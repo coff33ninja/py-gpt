@@ -29,7 +29,7 @@ from .summarizer import Summarizer
 from .extra import Extra
 
 class Ctx:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Context controller
 

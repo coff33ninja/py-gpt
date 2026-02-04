@@ -28,7 +28,7 @@ class Response:
 
     AGENT_MODES_ALLOWED = (MODE_AGENT_LLAMA, MODE_AGENT_OPENAI)
 
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Response controller
 

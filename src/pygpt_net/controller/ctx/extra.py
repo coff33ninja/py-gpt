@@ -17,7 +17,7 @@ from pygpt_net.utils import trans
 
 
 class Extra:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Extra actions controller
 

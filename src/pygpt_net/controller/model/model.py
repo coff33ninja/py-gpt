@@ -21,7 +21,7 @@ from .editor import Editor
 from .importer import Importer
 
 class Model:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Model controller
 
@@ -97,30 +97,41 @@ class Model:
 
         :param model: model ID
         """
-        if self.change_locked():
-            return
+        try:
+            if self.change_locked():
+                return
 
-        w = self.window
-        cfg = w.core.config
-        mode = cfg.get('mode')
-        cfg.set('model', model)
-        self._ensure_current_model_map()[mode] = model
+            w = self.window
+            cfg = w.core.config
+            mode = cfg.get('mode')
+            cfg.set('model', model)
+            self._ensure_current_model_map()[mode] = model
 
-        w.dispatch(Event(Event.MODEL_SELECT, {'value': model}))
-        w.controller.ui.update()
-        w.dispatch(AppEvent(AppEvent.MODEL_SELECTED))
+            w.dispatch(Event(Event.MODEL_SELECT, {'value': model}))
+            w.controller.ui.update()
+            w.dispatch(AppEvent(AppEvent.MODEL_SELECTED))
 
-        preset = cfg.get('preset')
-        if preset and preset != "*":
-            preset_data = w.core.presets.get_by_id(mode, preset)
-            if preset_data:
-                preset_data.model = model
-                w.core.presets.save(preset)
+            preset = cfg.get('preset')
+            if preset and preset != "*":
+                preset_data = w.core.presets.get_by_id(mode, preset)
+                if preset_data:
+                    preset_data.model = model
+                    w.core.presets.save(preset)
 
-        ctx = w.core.ctx
-        ctx.model = model
-        ctx.last_model = model
-        ctx.update_model_in_current(model)
+            ctx = w.core.ctx
+            ctx.model = model
+            ctx.last_model = model
+            ctx.update_model_in_current(model)
+        except PermissionError as e:
+            self.window.core.error_handler.handle(e, "model.select")
+        except OSError as e:
+            self.window.core.error_handler.handle(e, "model.select")
+        except KeyError as e:
+            self.window.core.error_handler.handle(e, "model.select")
+        except AttributeError as e:
+            self.window.core.error_handler.handle(e, "model.select")
+        except Exception as e:
+            self.window.core.error_handler.handle(e, "model.select")
 
     def next(self):
         """Select next model"""

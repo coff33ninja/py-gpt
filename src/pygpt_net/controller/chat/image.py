@@ -22,7 +22,7 @@ from pygpt_net.utils import trans
 
 
 class Image:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Image controller
 

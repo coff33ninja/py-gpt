@@ -24,7 +24,7 @@ from pygpt_net.utils import trans, short_num
 
 
 class Common:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Chat common controller
 

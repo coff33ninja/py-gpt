@@ -23,7 +23,7 @@ from pygpt_net.core.types import (
 )
 
 class Vision:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         UI vision update controller
 

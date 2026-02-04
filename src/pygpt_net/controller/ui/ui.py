@@ -22,7 +22,7 @@ from .tabs import Tabs
 from .vision import Vision
 
 class UI:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         UI update controller
 
@@ -63,14 +63,23 @@ class UI:
 
     def update(self):
         """Update all elements"""
-        self.update_toolbox()
-        self.update_chat_label()
-        self.mode.update()
-        self.update_tokens()
-        self.vision.update()
-        self.window.controller.agent.legacy.update()
-        self.img_update_available_modes()
-        self.img_update_available_resolutions()
+        try:
+            self.update_toolbox()
+            self.update_chat_label()
+            self.mode.update()
+            self.update_tokens()
+            self.vision.update()
+            self.window.controller.agent.legacy.update()
+            self.img_update_available_modes()
+            self.img_update_available_resolutions()
+        except KeyError as e:
+            self.window.core.error_handler.handle(e, "ui.update")
+        except AttributeError as e:
+            self.window.core.error_handler.handle(e, "ui.update")
+        except RuntimeError as e:
+            self.window.core.error_handler.handle(e, "ui.update")
+        except Exception as e:
+            self.window.core.error_handler.handle(e, "ui.update")
 
     def handle(self, event: BaseEvent):
         """

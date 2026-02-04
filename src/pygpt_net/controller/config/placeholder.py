@@ -21,7 +21,7 @@ from pygpt_net.utils import trans
 
 
 class Placeholder:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Configuration placeholder options controller
 
@@ -115,10 +115,23 @@ class Placeholder:
         :param params: Additional parameters for specific placeholders
         :return: Filled placeholder list
         """
-        if params is None:
-            params = {}
-        handler = self._apply_handlers.get(id)
-        return handler(params) if handler else []
+        try:
+            if params is None:
+                params = {}
+            handler = self._apply_handlers.get(id)
+            return handler(params) if handler else []
+        except KeyError as e:
+            self.window.core.error_handler.handle(e, "placeholder.apply_by_id")
+            return []
+        except AttributeError as e:
+            self.window.core.error_handler.handle(e, "placeholder.apply_by_id")
+            return []
+        except RuntimeError as e:
+            self.window.core.error_handler.handle(e, "placeholder.apply_by_id")
+            return []
+        except Exception as e:
+            self.window.core.error_handler.handle(e, "placeholder.apply_by_id")
+            return []
 
     def get_audio_tts_whisper_voices(self) -> List[Dict[str, str]]:
         """

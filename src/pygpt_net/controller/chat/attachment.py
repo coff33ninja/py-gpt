@@ -32,7 +32,7 @@ class Attachment(QObject):
     MODE_QUERY_CONTEXT_SUMMARY = 'summary'  # summary full context and attach summary to system prompt
     MODE_DISABLED = 'disabled'  # disabled
 
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Attachment controller
 

@@ -28,7 +28,7 @@ from pygpt_net.utils import trans
 
 
 class Mode:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         UI mode switch controller
 
@@ -38,200 +38,231 @@ class Mode:
 
     def update(self):
         """Update mode, model, preset and rest of the toolbox"""
+        try:
+            mode = self.window.core.config.get("mode")
+            model = self.window.core.config.get("model")
 
-        mode = self.window.core.config.get("mode")
-        model = self.window.core.config.get("model")
+            ui_nodes = self.window.ui.nodes
+            ui_tabs = self.window.ui.tabs
+            ui_menu = self.window.ui.menu
+            ctrl = self.window.controller
+            presets_editor = ctrl.presets.editor
 
-        ui_nodes = self.window.ui.nodes
-        ui_tabs = self.window.ui.tabs
-        ui_menu = self.window.ui.menu
-        ctrl = self.window.controller
-        presets_editor = ctrl.presets.editor
+            is_assistant = mode == MODE_ASSISTANT
+            is_computer = mode == MODE_COMPUTER
+            is_agent = mode == MODE_AGENT
+            is_agent_llama = mode == MODE_AGENT_LLAMA
+            is_agent_openai = mode == MODE_AGENT_OPENAI
+            is_expert = mode == MODE_EXPERT
+            is_media = mode == MODE_IMAGE
+            is_llama_index = mode == MODE_LLAMA_INDEX
+            is_completion = mode == MODE_COMPLETION
+            is_audio = mode == MODE_AUDIO
+            is_vision = mode == MODE_VISION
 
-        is_assistant = mode == MODE_ASSISTANT
-        is_computer = mode == MODE_COMPUTER
-        is_agent = mode == MODE_AGENT
-        is_agent_llama = mode == MODE_AGENT_LLAMA
-        is_agent_openai = mode == MODE_AGENT_OPENAI
-        is_expert = mode == MODE_EXPERT
-        is_media = mode == MODE_IMAGE
-        is_llama_index = mode == MODE_LLAMA_INDEX
-        is_completion = mode == MODE_COMPLETION
-        is_audio = mode == MODE_AUDIO
+            # Check if current model supports vision capabilities
+            has_vision_model = False
+            if model and ctrl.model:
+                try:
+                    model_data = ctrl.model.get_by_id(model)
+                    if model_data and hasattr(model_data, 'vision') and model_data.vision:
+                        has_vision_model = True
+                except Exception:
+                    pass  # Model check is optional, continue without it
 
-        ctrl.ui.hide_input_extra()
+            ctrl.ui.hide_input_extra()
 
-        # enable/disable system prompt edit - disable in agents (prompts are defined per agent in presets)
-        if not is_agent_openai and not is_agent_llama:
-            presets_editor.toggle_tab("personalize", True)
-            if 'preset.prompt' in ui_nodes and ui_nodes['preset.prompt'].isReadOnly():
-                ui_nodes['preset.prompt'].setReadOnly(False)
-                ui_nodes['preset.prompt'].setPlaceholderText("")
-        else:
-            presets_editor.toggle_tab("personalize", False)
-            if 'preset.prompt' in ui_nodes and not ui_nodes['preset.prompt'].isReadOnly():
-                ui_nodes['preset.prompt'].setReadOnly(True)
-                ui_nodes['preset.prompt'].setPlaceholderText(trans("toolbox.agent.preset.placeholder"))
-
-        # audio options visibility
-        if not is_audio:
-            ui_nodes['audio.auto_turn'].setVisible(False)
-            ui_nodes["audio.loop"].setVisible(False)
-            if not ctrl.plugins.is_enabled('audio_output'):
-                ctrl.audio.toggle_output_icon(False)
-        else:
-            ui_nodes['audio.auto_turn'].setVisible(True)
-            ui_nodes["audio.loop"].setVisible(True)
-            if not ctrl.audio.is_muted():
-                ctrl.audio.toggle_output_icon(True)
+            # enable/disable system prompt edit - disable in agents (prompts are defined per agent in presets)
+            if not is_agent_openai and not is_agent_llama:
+                presets_editor.toggle_tab("personalize", True)
+                if 'preset.prompt' in ui_nodes and ui_nodes['preset.prompt'].isReadOnly():
+                    ui_nodes['preset.prompt'].setReadOnly(False)
+                    ui_nodes['preset.prompt'].setPlaceholderText("")
             else:
-                ctrl.audio.toggle_output_icon(False)
+                presets_editor.toggle_tab("personalize", False)
+                if 'preset.prompt' in ui_nodes and not ui_nodes['preset.prompt'].isReadOnly():
+                    ui_nodes['preset.prompt'].setReadOnly(True)
+                    ui_nodes['preset.prompt'].setPlaceholderText(trans("toolbox.agent.preset.placeholder"))
 
-        # presets/assistants visibility
-        if not is_assistant:
-            ui_nodes['presets.widget'].setVisible(True)
-        else:
-            ui_nodes['presets.widget'].setVisible(False)
+            # audio options visibility
+            if not is_audio:
+                ui_nodes['audio.auto_turn'].setVisible(False)
+                ui_nodes["audio.loop"].setVisible(False)
+                if not ctrl.plugins.is_enabled('audio_output'):
+                    ctrl.audio.toggle_output_icon(False)
+            else:
+                ui_nodes['audio.auto_turn'].setVisible(True)
+                ui_nodes["audio.loop"].setVisible(True)
+                if not ctrl.audio.is_muted():
+                    ctrl.audio.toggle_output_icon(True)
+                else:
+                    ctrl.audio.toggle_output_icon(False)
 
-        if not is_computer:
-            ui_nodes['env.widget'].setVisible(False)
-        else:
-            ui_nodes['env.widget'].setVisible(True)
+            # presets/assistants visibility
+            if not is_assistant:
+                ui_nodes['presets.widget'].setVisible(True)
+            else:
+                ui_nodes['presets.widget'].setVisible(False)
 
-        # agents/experts/presets label visibility
-        show_agents_label = is_agent or is_agent_llama or is_agent_openai
-        if show_agents_label:
-            ui_nodes['preset.agents.label'].setVisible(True)
-            ui_nodes['preset.experts.label'].setVisible(False)
-            ui_nodes['preset.presets.label'].setVisible(False)
-        elif is_expert:
-            ui_nodes['preset.agents.label'].setVisible(False)
-            ui_nodes['preset.experts.label'].setVisible(True)
-            ui_nodes['preset.presets.label'].setVisible(False)
-        else:
-            ui_nodes['preset.agents.label'].setVisible(False)
-            ui_nodes['preset.experts.label'].setVisible(False)
-            ui_nodes['preset.presets.label'].setVisible(True)
+            if not is_computer:
+                ui_nodes['env.widget'].setVisible(False)
+            else:
+                ui_nodes['env.widget'].setVisible(True)
 
-        if is_expert:
-            ui_nodes['preset.editor.description'].setVisible(True)
-            presets_editor.toggle_tab("remote_tools", True)
-        else:
-            presets_editor.toggle_tab("remote_tools", False)
-            ui_nodes['preset.editor.description'].setVisible(False)
+            # agents/experts/presets label visibility
+            show_agents_label = is_agent or is_agent_llama or is_agent_openai
+            if show_agents_label:
+                ui_nodes['preset.agents.label'].setVisible(True)
+                ui_nodes['preset.experts.label'].setVisible(False)
+                ui_nodes['preset.presets.label'].setVisible(False)
+            elif is_expert:
+                ui_nodes['preset.agents.label'].setVisible(False)
+                ui_nodes['preset.experts.label'].setVisible(True)
+                ui_nodes['preset.presets.label'].setVisible(False)
+            else:
+                ui_nodes['preset.agents.label'].setVisible(False)
+                ui_nodes['preset.experts.label'].setVisible(False)
+                ui_nodes['preset.presets.label'].setVisible(True)
 
-        if is_completion:
-            ui_nodes['preset.editor.user_name'].setVisible(True)
-        else:
-            ui_nodes['preset.editor.user_name'].setVisible(False)
-
-        if is_agent_openai:
-            ui_nodes['preset.editor.agent_provider_openai'].setVisible(True)
-        else:
-            ui_nodes['preset.editor.agent_provider_openai'].setVisible(False)
-
-        # prompt editor toolbox visibility
-        if is_agent:
-            presets_editor.toggle_tab("experts", True)
-            ui_nodes['preset.editor.temperature'].setVisible(True)
-            ui_nodes['preset.editor.idx'].setVisible(False)
-            ui_nodes['preset.editor.agent_provider'].setVisible(False)
-            ui_nodes['preset.editor.modes'].setVisible(False)
-            ui_tabs['preset.editor.extra'].setTabText(0, trans("preset.prompt.agent"))
-        elif is_agent_llama:
-            presets_editor.toggle_tab("experts", False)
-            ui_nodes['preset.editor.temperature'].setVisible(False)
-            ui_nodes['preset.editor.idx'].setVisible(True)
-            ui_nodes['preset.editor.agent_provider'].setVisible(True)
-            ui_nodes['preset.editor.modes'].setVisible(False)
-            ui_tabs['preset.editor.extra'].setTabText(0, trans("preset.prompt.agent_llama"))
-        elif is_agent_openai:
-            presets_editor.toggle_tab("experts", True)
-            ui_nodes['preset.editor.temperature'].setVisible(False)
-            ui_nodes['preset.editor.idx'].setVisible(True)
-            ui_nodes['preset.editor.agent_provider'].setVisible(False)
-            ui_nodes['preset.editor.modes'].setVisible(False)
-            ui_tabs['preset.editor.extra'].setTabText(0, trans("preset.prompt.agent_llama"))
-        else:
             if is_expert:
-                ui_nodes['preset.editor.idx'].setVisible(True)
+                ui_nodes['preset.editor.description'].setVisible(True)
+                presets_editor.toggle_tab("remote_tools", True)
             else:
+                presets_editor.toggle_tab("remote_tools", False)
+                ui_nodes['preset.editor.description'].setVisible(False)
+
+            if is_completion:
+                ui_nodes['preset.editor.user_name'].setVisible(True)
+            else:
+                ui_nodes['preset.editor.user_name'].setVisible(False)
+
+            if is_agent_openai:
+                ui_nodes['preset.editor.agent_provider_openai'].setVisible(True)
+            else:
+                ui_nodes['preset.editor.agent_provider_openai'].setVisible(False)
+
+            # prompt editor toolbox visibility
+            if is_agent:
+                presets_editor.toggle_tab("experts", True)
+                ui_nodes['preset.editor.temperature'].setVisible(True)
                 ui_nodes['preset.editor.idx'].setVisible(False)
+                ui_nodes['preset.editor.agent_provider'].setVisible(False)
+                ui_nodes['preset.editor.modes'].setVisible(False)
+                ui_tabs['preset.editor.extra'].setTabText(0, trans("preset.prompt.agent"))
+            elif is_agent_llama:
+                presets_editor.toggle_tab("experts", False)
+                ui_nodes['preset.editor.temperature'].setVisible(False)
+                ui_nodes['preset.editor.idx'].setVisible(True)
+                ui_nodes['preset.editor.agent_provider'].setVisible(True)
+                ui_nodes['preset.editor.modes'].setVisible(False)
+                ui_tabs['preset.editor.extra'].setTabText(0, trans("preset.prompt.agent_llama"))
+            elif is_agent_openai:
+                presets_editor.toggle_tab("experts", True)
+                ui_nodes['preset.editor.temperature'].setVisible(False)
+                ui_nodes['preset.editor.idx'].setVisible(True)
+                ui_nodes['preset.editor.agent_provider'].setVisible(False)
+                ui_nodes['preset.editor.modes'].setVisible(False)
+                ui_tabs['preset.editor.extra'].setTabText(0, trans("preset.prompt.agent_llama"))
+            else:
+                if is_expert:
+                    ui_nodes['preset.editor.idx'].setVisible(True)
+                else:
+                    ui_nodes['preset.editor.idx'].setVisible(False)
 
-            presets_editor.toggle_tab("experts", False)
-            ui_nodes['preset.editor.temperature'].setVisible(True)
-            ui_nodes['preset.editor.agent_provider'].setVisible(False)
-            ui_nodes['preset.editor.modes'].setVisible(True)
-            ui_tabs['preset.editor.extra'].setTabText(0, trans("preset.prompt"))
+                presets_editor.toggle_tab("experts", False)
+                ui_nodes['preset.editor.temperature'].setVisible(True)
+                ui_nodes['preset.editor.agent_provider'].setVisible(False)
+                ui_nodes['preset.editor.modes'].setVisible(True)
+                ui_tabs['preset.editor.extra'].setTabText(0, trans("preset.prompt"))
 
-        # media options visibility
-        if is_media:
-            ui_nodes['media.raw'].setVisible(True)
-            if ctrl.media.is_video_model() and ctrl.media.get_mode() == "video":
-                ui_nodes['video.options'].setVisible(True)
-                ui_nodes['dalle.options'].setVisible(False)
-            elif ctrl.media.is_image_model() and ctrl.media.get_mode() == "image":
-                ui_nodes['dalle.options'].setVisible(True)
-                ui_nodes['video.options'].setVisible(False)
-            elif ctrl.media.get_mode() == "music":
-                ui_nodes['dalle.options'].setVisible(False)
-                ui_nodes['video.options'].setVisible(False)
+            # media options visibility
+            if is_media:
+                ui_nodes['media.raw'].setVisible(True)
+                if ctrl.media.is_video_model() and ctrl.media.get_mode() == "video":
+                    ui_nodes['video.options'].setVisible(True)
+                    ui_nodes['dalle.options'].setVisible(False)
+                elif ctrl.media.is_image_model() and ctrl.media.get_mode() == "image":
+                    ui_nodes['dalle.options'].setVisible(True)
+                    ui_nodes['video.options'].setVisible(False)
+                elif ctrl.media.get_mode() == "music":
+                    ui_nodes['dalle.options'].setVisible(False)
+                    ui_nodes['video.options'].setVisible(False)
+                else:
+                    ui_nodes['media.raw'].setVisible(False)
+                    ui_nodes['dalle.options'].setVisible(False)
+                    ui_nodes['video.options'].setVisible(False)
+
+                ctrl.ui.show_input_extra()
             else:
                 ui_nodes['media.raw'].setVisible(False)
                 ui_nodes['dalle.options'].setVisible(False)
                 ui_nodes['video.options'].setVisible(False)
 
-            ctrl.ui.show_input_extra()
-        else:
-            ui_nodes['media.raw'].setVisible(False)
-            ui_nodes['dalle.options'].setVisible(False)
-            ui_nodes['video.options'].setVisible(False)
+            # Vision mode specific UI adjustments
+            if is_vision:
+                # Enable vision-specific features in vision mode
+                if 'vision.options' in ui_nodes:
+                    ui_nodes['vision.options'].setVisible(True)
+                # Show vision capture controls
+                ui_nodes['icon.video.capture'].setVisible(True)
+                ui_nodes['attachments.capture_clear'].setVisible(True)
+            else:
+                if 'vision.options' in ui_nodes:
+                    ui_nodes['vision.options'].setVisible(False)
 
-        if is_agent:
-            ui_nodes['agent.options'].setVisible(True)
-        else:
-            ui_nodes['agent.options'].setVisible(False)
+            if is_agent:
+                ui_nodes['agent.options'].setVisible(True)
+            else:
+                ui_nodes['agent.options'].setVisible(False)
 
-        if is_agent_llama or is_agent_openai:
-            ui_nodes['agent_llama.options'].setVisible(True)
-        else:
-            ui_nodes['agent_llama.options'].setVisible(False)
+            if is_agent_llama or is_agent_openai:
+                ui_nodes['agent_llama.options'].setVisible(True)
+            else:
+                ui_nodes['agent_llama.options'].setVisible(False)
 
-        if is_assistant:
-            ui_nodes['assistants.widget'].setVisible(True)
-        else:
-            ui_nodes['assistants.widget'].setVisible(False)
+            if is_assistant:
+                ui_nodes['assistants.widget'].setVisible(True)
+            else:
+                ui_nodes['assistants.widget'].setVisible(False)
 
-        if is_llama_index:
-            ui_nodes['idx.options'].setVisible(True)
-        else:
-            ui_nodes['idx.options'].setVisible(False)
+            if is_llama_index:
+                ui_nodes['idx.options'].setVisible(True)
+            else:
+                ui_nodes['idx.options'].setVisible(False)
 
-        if is_media:
-            ui_nodes['input.stream'].setVisible(False)
-        else:
-            ui_nodes['input.stream'].setVisible(True)
+            if is_media:
+                ui_nodes['input.stream'].setVisible(False)
+            else:
+                ui_nodes['input.stream'].setVisible(True)
 
-        show = self.is_vision(mode)
-        ui_menu['menu.video'].menuAction().setVisible(show)
-        ui_nodes['icon.video.capture'].setVisible(show)
-        ui_nodes['attachments.capture_clear'].setVisible(show)
+            show = self.is_vision(mode)
+            ui_menu['menu.video'].menuAction().setVisible(show)
+            ui_nodes['icon.video.capture'].setVisible(show or has_vision_model)
+            ui_nodes['attachments.capture_clear'].setVisible(show or has_vision_model)
 
-        show = self.are_attachments(mode)
-        ui_tabs['input'].setTabVisible(1, show)
+            show = self.are_attachments(mode)
+            ui_tabs['input'].setTabVisible(1, show)
 
-        # remote tools icon visibility
-        if not is_media and not is_completion:
-            self.window.ui.nodes['input'].set_icon_visible("web", True)
-        else:
-            self.window.ui.nodes['input'].set_icon_visible("web", False)
+            # remote tools icon visibility
+            if not is_media and not is_completion:
+                self.window.ui.nodes['input'].set_icon_visible("web", True)
+            else:
+                self.window.ui.nodes['input'].set_icon_visible("web", False)
 
-        ui_tabs['input'].setTabVisible(2, is_assistant)
-        ui_tabs['input'].setTabVisible(3, (not is_assistant) and (not is_media))
+            ui_tabs['input'].setTabVisible(2, is_assistant)
+            ui_tabs['input'].setTabVisible(3, (not is_assistant) and (not is_media))
 
-        presets_editor.toggle_extra_options()
+            presets_editor.toggle_extra_options()
 
-        self.toggle_chat_footer()
+            self.toggle_chat_footer()
+        except KeyError as e:
+            self.window.core.error_handler.handle(e, "ui.mode.update")
+        except AttributeError as e:
+            self.window.core.error_handler.handle(e, "ui.mode.update")
+        except RuntimeError as e:
+            self.window.core.error_handler.handle(e, "ui.mode.update")
+        except Exception as e:
+            self.window.core.error_handler.handle(e, "ui.mode.update")
 
     def toggle_chat_footer(self):
         """Toggle chat footer"""
@@ -247,6 +278,10 @@ class Mode:
         :param mode: current mode
         :return: True if vision is allowed
         """
+        # Vision mode always allows vision
+        if mode == MODE_VISION:
+            return True
+
         ctrl = self.window.controller
         if ctrl.ui.vision.has_vision():
             return True

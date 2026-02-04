@@ -23,7 +23,7 @@ from .placeholder import Placeholder
 
 
 class Config:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Configuration controller
 
@@ -85,16 +85,23 @@ class Config:
         :param key: Option key
         :param option: Option dict
         """
-        t = option['type']
-        if t in ('int', 'float'):
-            if option.get('slider'):
-                self.slider.apply(parent_id, key, option)
-            else:
-                self.input.apply(parent_id, key, option)
-            return
-        func = self._apply_map.get(t)
-        if func:
-            func(parent_id, key, option)
+        try:
+            t = option['type']
+            if t in ('int', 'float'):
+                if option.get('slider'):
+                    self.slider.apply(parent_id, key, option)
+                else:
+                    self.input.apply(parent_id, key, option)
+                return
+            func = self._apply_map.get(t)
+            if func:
+                func(parent_id, key, option)
+        except KeyError as e:
+            self.window.core.error_handler.handle(e, "config.apply")
+        except AttributeError as e:
+            self.window.core.error_handler.handle(e, "config.apply")
+        except Exception as e:
+            self.window.core.error_handler.handle(e, "config.apply")
 
     def apply_value(
             self,
@@ -130,16 +137,23 @@ class Config:
         :param idx: return selected idx, not the value
         :return: Option value
         """
-        t = option['type']
-        if t in ('int', 'float'):
-            if option.get('slider'):
-                return self.slider.get_value(parent_id, key, option)
-            return self.input.get_value(parent_id, key, option)
-        if t == 'combo':
-            return self.combo.get_value(parent_id, key, option, idx)
-        func = self._get_map.get(t)
-        if func:
-            return func(parent_id, key, option)
+        try:
+            t = option['type']
+            if t in ('int', 'float'):
+                if option.get('slider'):
+                    return self.slider.get_value(parent_id, key, option)
+                return self.input.get_value(parent_id, key, option)
+            if t == 'combo':
+                return self.combo.get_value(parent_id, key, option, idx)
+            func = self._get_map.get(t)
+            if func:
+                return func(parent_id, key, option)
+        except KeyError as e:
+            self.window.core.error_handler.handle(e, "config.get_value")
+        except AttributeError as e:
+            self.window.core.error_handler.handle(e, "config.get_value")
+        except Exception as e:
+            self.window.core.error_handler.handle(e, "config.get_value")
 
     def update_list(
             self,

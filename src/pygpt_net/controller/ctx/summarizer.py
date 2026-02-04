@@ -19,7 +19,7 @@ class WorkerSignals(QObject):
 
 
 class Summarizer:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Summarize  controller
 
@@ -59,10 +59,19 @@ class Summarizer:
         :param window: Window instance
         :param updated_signal: WorkerSignals: updated signal
         """
-        title = window.core.api.openai.summarizer.summary_ctx(ctx)
-        if title:
-            updated_signal.emit(id, ctx, title)
-            updated_signal.disconnect()
+        try:
+            title = window.core.api.openai.summarizer.summary_ctx(ctx)
+            if title:
+                updated_signal.emit(id, ctx, title)
+                updated_signal.disconnect()
+        except ConnectionError as e:
+            window.core.error_handler.handle(e, "ctx.summarizer.summarizer.connection")
+        except TimeoutError as e:
+            window.core.error_handler.handle(e, "ctx.summarizer.summarizer.timeout")
+        except RuntimeError as e:
+            window.core.error_handler.handle(e, "ctx.summarizer.summarizer.runtime")
+        except Exception as e:
+            window.core.error_handler.handle(e, "ctx.summarizer.summarizer")
 
     def start_worker(
             self,

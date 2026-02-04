@@ -22,7 +22,7 @@ from .summarizer import Summarizer
 
 
 class Common:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Common ctx controller
 

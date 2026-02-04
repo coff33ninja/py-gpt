@@ -14,7 +14,7 @@ from PySide6.QtGui import QDesktopServices
 
 
 class Info:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Info dialogs controller
 

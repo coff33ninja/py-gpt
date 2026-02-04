@@ -17,7 +17,7 @@ from pygpt_net.utils import trans
 
 
 class Files:
-    def __init__(self, window=None):
+    def __init__(self, window=None) -> None:
         """
         Chat files/attachments controller
 
