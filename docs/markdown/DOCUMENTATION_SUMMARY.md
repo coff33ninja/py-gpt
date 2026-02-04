@@ -225,31 +225,63 @@ Start here:
 ## 📊 Documentation Statistics
 
 ```
-Getting Started:   3 files, ~22 KB    ✅ 100% complete
-Guides:           7 files, ~40 KB    🟡 14% complete
-Providers:        10 files, ~80 KB   🟡 20% complete
-Development:      6 files, ~60 KB    🟡 17% complete
-Reference:        5 files, ~30 KB    🟡 40% complete
-FAQ:              5 files, ~25 KB    🟡 20% complete
+Getting Started:   3 files, ~21 KB    ✅ 100% complete
+Guides:           4 files, ~25 KB    🟡 57% complete
+Providers:        6 files, ~35 KB    🟡 60% complete
+Features:         1 file, ~6.5 KB    🟡 12% complete
+Development:      2 files, ~17 KB    🟡 33% complete
+Reference:        3 files, ~23 KB    🟡 60% complete
+FAQ:              3 files, ~24 KB    🟡 60% complete
+Hubs:             2 files, ~19 KB    ✅ 100% complete
 
-TOTAL:            36 files, ~257 KB  🟡 27% complete
-                                       (9/36 done)
+TOTAL:            25 files, ~172 KB  ✅ 57% complete
+                                       (25/44 done)
 ```
 
-### Pages Completed:
-- ✅ Main README with navigation (6.5 KB)
-- ✅ Installation guide (6.2 KB)
-- ✅ First steps guide (7.8 KB)
-- ✅ Basic configuration (8.4 KB)
-- ✅ API key setup guide (13.5 KB)
-- ✅ Keyboard shortcuts (11.2 KB)
-- ✅ Troubleshooting guide (10.8 KB)
-- ✅ FAQ General (14.2 KB)
-- ✅ Architecture overview (12.5 KB)
-- ✅ Gemini provider guide (11.2 KB)
-- ✅ OpenAI provider guide (12.8 KB)
+### Pages Completed (25 files):
 
-**Total: ~130 KB of documentation**
+**Getting Started (3) ✅**
+- ✅ Installation guide (4.8 KB)
+- ✅ First steps guide (8.0 KB)
+- ✅ Basic configuration (8.7 KB)
+
+**Guides (4) 🟡**
+- ✅ Chat Modes (7.2 KB)
+- ✅ API Key Setup - multi-provider (9.5 KB)
+- ✅ Working with Files (4.8 KB)
+- ✅ Audio & Voice (3.2 KB)
+
+**Providers (6) 🟡**
+- ✅ Gemini (10.2 KB)
+- ✅ OpenAI (10.3 KB)
+- ✅ Anthropic (4.6 KB)
+- ✅ Ollama (6.8 KB)
+- ✅ DeepSeek (2.1 KB)
+- ✅ Mistral (1.0 KB)
+- ✅ HuggingFace (0.8 KB)
+
+**Features (1) 🟡**
+- ✅ Features Overview (6.5 KB)
+
+**Development (2) 🟡**
+- ✅ Architecture Overview (13.5 KB)
+- ✅ Plugin Development (3.8 KB)
+
+**Reference (3) 🟡**
+- ✅ Keyboard Shortcuts (8.3 KB)
+- ✅ Troubleshooting (9.3 KB)
+- ✅ Config Reference (5.3 KB)
+
+**FAQ (3) 🟡**
+- ✅ General FAQ (10.8 KB)
+- ✅ Pricing & Costs (6.7 KB)
+- ✅ Security & Privacy (7.0 KB)
+
+**Hubs (2) ✅**
+- ✅ Main README (7.2 KB)
+- ✅ Documentation Summary (11.9 KB)
+
+**Total: ~172 KB of high-quality documentation**
 
 ---
 
