@@ -173,52 +173,63 @@ Start here:
 ## ✅ Document Completion Checklist
 
 ### Getting Started ✅ (3/3)
-- [x] Installation guide (6.2KB)
-- [x] First steps guide (7.8KB)
-- [x] Basic configuration (8.4KB)
+- [x] Installation guide (4.8KB)
+- [x] First steps guide (8.0KB)
+- [x] Basic configuration (8.7KB)
 
-### Guides 🟡 (1/7)
+### Guides 🟡 (4/7)
+- [x] Chat Modes
 - [x] API Key Setup (comprehensive multi-provider guide)
-- [ ] Chat Modes
-- [ ] Working with Files
-- [ ] Audio & Voice
+- [x] Working with Files
+- [x] Audio & Voice
 - [ ] Vision & Images
 - [ ] Plugins & Extensions
 - [ ] Advanced Settings
 
-### Providers 🟡 (2/10)
+### Providers 🟡 (6/10)
 - [x] Gemini (11.2KB - full guide)
 - [x] OpenAI (detailed guide)
-- [ ] Anthropic
-- [ ] Ollama
-- [ ] DeepSeek
+- [x] Anthropic
+- [x] Ollama
+- [x] DeepSeek
+- [x] Mistral
+- [x] HuggingFace
 - [ ] xAI Grok
 - [ ] Perplexity
-- [ ] Mistral
-- [ ] HuggingFace
 - [ ] Comparison chart
 
-### Development ✅ (1/6)
+### Features 🟡 (1/8)
+- [x] Overview
+- [ ] Chat
+- [ ] Context Management
+- [ ] Code Interpreter
+- [ ] Web Search
+- [ ] Vector Store & RAG
+- [ ] Agents & Automation
+- [ ] Presets & Prompts
+- [ ] Custom Commands
+
+### Development 🟡 (2/6)
 - [x] Architecture (comprehensive overview)
-- [ ] Plugin Development
+- [x] Plugin Development
 - [ ] Custom Tools
 - [ ] LLM Integration
 - [ ] API Reference
 - [ ] Contributing
 
-### Reference ✅ (2/5)
+### Reference 🟡 (3/5)
 - [x] Keyboard Shortcuts (comprehensive)
 - [x] Troubleshooting (complete)
+- [x] Config Reference
 - [ ] Supported Models
-- [ ] Config Reference
 - [ ] Glossary
 
-### FAQ ✅ (1/5)
+### FAQ 🟡 (3/5)
 - [x] General (comprehensive)
-- [ ] Troubleshooting FAQ
+- [x] Pricing & Costs
+- [x] Security & Privacy
 - [ ] Performance FAQ
-- [ ] Pricing FAQ
-- [ ] Security FAQ
+- [ ] Troubleshooting FAQ
 
 ---
 
