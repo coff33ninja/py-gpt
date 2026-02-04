@@ -6,48 +6,84 @@
 # GitHub:  https://github.com/szczyglis-dev/py-gpt   #
 # MIT License                                        #
 # Created By  : Marcin Szczygliński                  #
-# Updated Date: 2025.08.26 19:00:00                  #
+# Updated Date: 2026.02.04 00:00:00                  #
 # ================================================== #
 
 import os
 from typing import Optional, List, Dict
 
-from pygpt_net.core.types import (
-    MODE_LLAMA_INDEX,
-)
 from llama_index.core.llms.llm import BaseLLM as LlamaBaseLLM
 from llama_index.core.base.embeddings.base import BaseEmbedding
 
-from pygpt_net.provider.llms.base import BaseLLM
+from pygpt_net.core.types import MODE_LLAMA_INDEX
+from pygpt_net.provider.llms.base_provider import StandardLLMProvider
 from pygpt_net.item.model import ModelItem
 
 
-class HuggingFaceApiLLM(BaseLLM):
+class HuggingFaceApiLLM(StandardLLMProvider):
     def __init__(self, *args, **kwargs):
-        super(HuggingFaceApiLLM, self).__init__(*args, **kwargs)
-        self.id = "huggingface_api"
-        self.name = "HuggingFace API"
-        self.type = [MODE_LLAMA_INDEX, "embeddings"]
+        super().__init__(
+            provider_id="huggingface_api",
+            provider_name="HuggingFace API",
+            supported_modes=[MODE_LLAMA_INDEX, "embeddings"],
+            api_key_config="api_key_hugging_face",
+            *args,
+            **kwargs
+        )
 
-    def llama(
+    def _ensure_api_key(self, args: Dict, window) -> Dict:
+        """
+        Override to handle token/api_key aliasing for HuggingFace.
+
+        :param args: Arguments dict
+        :param window: Window instance
+        :return: Updated arguments dict
+        """
+        # HuggingFace uses 'token' instead of 'api_key'
+        if "token" not in args:
+            if "api_key" in args and args["api_key"]:
+                args["token"] = args.pop("api_key")
+            else:
+                args["token"] = window.core.config.get("api_key_hugging_face", "")
+        return args
+
+    def _create_llm_instance(
             self,
+            args: Dict,
             window,
-            model: ModelItem,
-            stream: bool = False
+            model: ModelItem
     ) -> LlamaBaseLLM:
         """
-        Return LLM provider instance for llama (Hugging Face Inference API) z obsługą proxy.
+        Create HuggingFace Inference API LLM instance with custom proxy support.
+
+        :param args: Prepared arguments dict
+        :param window: Window instance
+        :param model: Model instance
+        :return: HuggingFaceInferenceAPI LLM instance
         """
         from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI as LIHF
 
+        cfg = window.core.config
+
+        # Set Inference Endpoint / router if configured
+        base_url = cfg.get("api_endpoint_hugging_face", "").strip()
+        if base_url and "base_url" not in args:
+            args["base_url"] = base_url
+
+        # Get proxy and trust_env settings
+        proxy = cfg.get("api_proxy") or cfg.get("api_native_hf.proxy")
+        if not cfg.get("api_proxy.enabled", False):
+            proxy = ""
+        trust_env = cfg.get("api_native_hf.trust_env", False)
+
+        # Custom proxy wrapper for HuggingFace Inference API
         class HuggingFaceInferenceAPIWithProxy(LIHF):
             def __init__(self, *, proxy=None, trust_env=None, **kwargs):
                 """
-                proxy: str or dict compatible with huggingface_hub (e.g. "http://user:pass@host:3128"
-                       lub {"http": "...", "https": "..."})
-                trust_env: forAsyncInferenceClient (default False) - whether to trust environment variables
+                proxy: str or dict compatible with huggingface_hub
+                trust_env: for AsyncInferenceClient (default False)
                 """
-                # alias: api_key -> token
+                # alias: api_key -> token (already handled in _ensure_api_key)
                 if "api_key" in kwargs and "token" not in kwargs:
                     kwargs["token"] = kwargs.pop("api_key")
 
@@ -64,7 +100,7 @@ class HuggingFaceApiLLM(BaseLLM):
                 base_kwargs = {}
                 if hasattr(self, "_get_inference_client_kwargs"):
                     try:
-                        base_kwargs = self._get_inference_client_kwargs()  # type: ignore
+                        base_kwargs = self._get_inference_client_kwargs()
                     except Exception:
                         base_kwargs = {}
 
@@ -84,7 +120,7 @@ class HuggingFaceApiLLM(BaseLLM):
                     sync_kwargs["proxies"] = hf_proxies
                     async_kwargs["proxies"] = hf_proxies
                 if trust_env is not None:
-                    async_kwargs["trust_env"] = trust_env  # default False
+                    async_kwargs["trust_env"] = trust_env
 
                 sync_client = InferenceClient(**sync_kwargs)
                 async_client = AsyncInferenceClient(**async_kwargs)
@@ -96,31 +132,6 @@ class HuggingFaceApiLLM(BaseLLM):
                     if hasattr(self, name):
                         setattr(self, name, client)
 
-        cfg = window.core.config
-        args = self.parse_args(model.llama_index, window)
-
-        # model
-        if "model" not in args:
-            args["model"] = model.id
-
-        # token / api_key
-        if "token" not in args:
-            if "api_key" in args and args["api_key"]:
-                args["token"] = args.pop("api_key")
-            else:
-                args["token"] = cfg.get("api_key_hugging_face", "")
-
-        # Inference Endpoint / router
-        base_url = cfg.get("api_endpoint_hugging_face", "").strip()
-        if base_url and "base_url" not in args:
-            args["base_url"] = base_url
-
-        # proxy + trust_env (async)
-        proxy = cfg.get("api_proxy") or cfg.get("api_native_hf.proxy")
-        if not cfg.get("api_proxy.enabled", False):
-            proxy = ""
-        trust_env = cfg.get("api_native_hf.trust_env", False)
-
         return HuggingFaceInferenceAPIWithProxy(proxy=proxy, trust_env=trust_env, **args)
 
     def get_embeddings_model(
@@ -128,6 +139,13 @@ class HuggingFaceApiLLM(BaseLLM):
             window,
             config: Optional[List[Dict]] = None
     ) -> BaseEmbedding:
+        """
+        Return provider instance for embeddings
+
+        :param window: window instance
+        :param config: config keyword arguments list
+        :return: Embedding provider instance
+        """
         from .hugging_face_embedding import (
             HuggingFaceInferenceAPIEmbeddingWithProxy as HFEmbed,
         )
