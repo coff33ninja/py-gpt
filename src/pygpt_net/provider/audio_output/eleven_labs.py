@@ -81,7 +81,7 @@ class ElevenLabsTextToSpeech(BaseProvider):
         api_key = self.plugin.get_option_value("eleven_labs_api_key")
         model = self.plugin.get_option_value("eleven_labs_model")
         voice = self.plugin.get_option_value("eleven_labs_voice")
-        output_file = self.plugin.output_file
+        output_file = self.plugin.generate_audio_file()
         path = os.path.join(
             self.plugin.window.core.config.path,
             output_file,
@@ -103,10 +103,27 @@ class ElevenLabsTextToSpeech(BaseProvider):
             }
         }
         response = requests.post(url, json=data, headers=headers)
-        with open(path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                if chunk:
-                    f.write(chunk)
+        
+        from pygpt_net.core.filesystem.safe_io import SafeFileIO
+        from pygpt_net.core.exceptions import AudioError
+        from pygpt_net.core.error_handler import ErrorSeverity
+        
+        try:
+            with SafeFileIO.safe_open(path, 'wb', max_retries=3) as f:
+                for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+                    if chunk:
+                        f.write(chunk)
+        except Exception as e:
+            error = AudioError(f"Failed to write audio file {path}: {e}")
+            self.window.core.error_handler.handle(
+                error,
+                severity=ErrorSeverity.ERROR,
+                context="Audio file write (Eleven Labs)",
+                user_message="Failed to save audio file",
+                recoverable=True
+            )
+            raise error
+        
         return str(path)
 
     def is_configured(self) -> bool:

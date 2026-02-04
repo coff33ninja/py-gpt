@@ -85,7 +85,7 @@ class MSAzureTextToSpeech(BaseProvider):
         api_key = self.plugin.get_option_value("azure_api_key")
         region = self.plugin.get_option_value("azure_region")
         lang = self.plugin.window.core.config.get('lang')
-        output_file = self.plugin.output_file
+        output_file = self.plugin.generate_audio_file()
         path = os.path.join(
             self.plugin.window.core.config.path,
             output_file,
@@ -109,8 +109,23 @@ class MSAzureTextToSpeech(BaseProvider):
             data=body.encode('utf-8'),
         )
         if response.status_code == 200:
-            with open(path, "wb") as file:
-                file.write(response.content)
+            from pygpt_net.core.filesystem.safe_io import SafeFileIO
+            from pygpt_net.core.exceptions import AudioError
+            from pygpt_net.core.error_handler import ErrorSeverity
+            
+            try:
+                with SafeFileIO.safe_open(path, "wb", max_retries=3) as file:
+                    file.write(response.content)
+            except Exception as e:
+                error = AudioError(f"Failed to write audio file {path}: {e}")
+                self.window.core.error_handler.handle(
+                    error,
+                    severity=ErrorSeverity.ERROR,
+                    context="Audio file write (MS Azure TTS)",
+                    user_message="Failed to save audio file",
+                    recoverable=True
+                )
+                raise error
             return str(path)
 
     def is_configured(self) -> bool:

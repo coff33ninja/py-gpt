@@ -120,9 +120,29 @@ class Video(QObject):
             try:
                 # try to make web compatible
                 self.make_web_compatible(path)
-            except Exception as e:
-                pass
+            except (OSError, IOError, PermissionError) as e:
+                from pygpt_net.core.error_handler import ErrorSeverity
+                self.window.core.error_handler.handle(
+                    e,
+                    severity=ErrorSeverity.WARNING,
+                    context="Video web compatibility conversion",
+                    recoverable=True,
+                    show_dialog=False
+                )
             return True
+        except (OSError, IOError, PermissionError) as e:
+            from pygpt_net.core.error_handler import ErrorSeverity
+            from pygpt_net.core.exceptions import FileOperationError
+            error = FileOperationError(f"Failed to save video: {e}")
+            self.window.core.error_handler.handle(
+                error,
+                severity=ErrorSeverity.ERROR,
+                context="Video save",
+                user_message=trans('img.status.save.error'),
+                recoverable=True
+            )
+            print(trans('img.status.save.error') + ": " + str(e))
+            return False
         except Exception as e:
             print(trans('img.status.save.error') + ": " + str(e))
             return False
@@ -182,7 +202,7 @@ class Video(QObject):
             try:
                 subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 return dst if os.path.exists(dst) else None
-            except subprocess.CalledProcessError as e:
+            except subprocess.CalledProcessError:
                 # If needed, print(e.stdout.decode(errors="ignore"))
                 return None
 

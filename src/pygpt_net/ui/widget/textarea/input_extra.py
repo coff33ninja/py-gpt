@@ -131,17 +131,31 @@ class ExtraInput(QTextEdit):
             # Always process attachments first; never break input pipeline on errors.
             try:
                 self.handle_clipboard(source)
+            except (OSError, RuntimeError, PermissionError) as e:
+                from pygpt_net.core.error_handler import ErrorSeverity
+                self.window.core.error_handler.handle(
+                    e,
+                    severity=ErrorSeverity.WARNING,
+                    context="Clipboard handling",
+                    user_message="Failed to access clipboard",
+                    recoverable=True,
+                    show_dialog=False
+                )
             except Exception as e:
-                try:
-                    self.window.core.debug.log(e)
-                except Exception:
-                    pass
+                from pygpt_net.core.error_handler import ErrorSeverity
+                self.window.core.error_handler.handle(
+                    e,
+                    severity=ErrorSeverity.ERROR,
+                    context="Clipboard handling - unexpected error",
+                    recoverable=True,
+                    show_dialog=False
+                )
 
         # Do not insert textual representation for images nor local file URLs (including directories).
         try:
             if source and (source.hasImage() or has_local_files):
                 return
-        except Exception:
+        except (RuntimeError, AttributeError):
             pass
 
         # Insert only sanitized plain text (no HTML, no custom formats).
@@ -149,11 +163,24 @@ class ExtraInput(QTextEdit):
             text = self._safe_text_from_mime(source)
             if text:
                 self.insertPlainText(text)
+        except (OSError, RuntimeError) as e:
+            from pygpt_net.core.error_handler import ErrorSeverity
+            self.window.core.error_handler.handle(
+                e,
+                severity=ErrorSeverity.WARNING,
+                context="Text insertion from clipboard",
+                recoverable=True,
+                show_dialog=False
+            )
         except Exception as e:
-            try:
-                self.window.core.debug.log(e)
-            except Exception:
-                pass
+            from pygpt_net.core.error_handler import ErrorSeverity
+            self.window.core.error_handler.handle(
+                e,
+                severity=ErrorSeverity.ERROR,
+                context="Text insertion - unexpected error",
+                recoverable=True,
+                show_dialog=False
+            )
 
     def _safe_text_from_mime(self, source) -> str:
         """
@@ -283,6 +310,16 @@ class ExtraInput(QTextEdit):
                         else:
                             # Non-local URLs are handled as text (if any) by _safe_text_from_mime
                             pass
+                    except (OSError, PermissionError) as e:
+                        from pygpt_net.core.error_handler import ErrorSeverity
+                        self.window.core.error_handler.handle(
+                            e,
+                            severity=ErrorSeverity.WARNING,
+                            context="Clipboard URL processing",
+                            recoverable=True,
+                            show_dialog=False
+                        )
+                        continue
                     except Exception:
                         # Ignore broken URL entries
                         continue
@@ -290,12 +327,26 @@ class ExtraInput(QTextEdit):
                 text = self._sanitize_text(source.text())
                 if text:
                     self.window.controller.attachment.from_clipboard_text(text)
+        except (OSError, RuntimeError, PermissionError) as e:
+            from pygpt_net.core.error_handler import ErrorSeverity
+            self.window.core.error_handler.handle(
+                e,
+                severity=ErrorSeverity.WARNING,
+                context="Clipboard data processing",
+                user_message="Failed to process clipboard data",
+                recoverable=True,
+                show_dialog=False
+            )
         except Exception as e:
             # Never propagate clipboard errors to UI thread
-            try:
-                self.window.core.debug.log(e)
-            except Exception:
-                pass
+            from pygpt_net.core.error_handler import ErrorSeverity
+            self.window.core.error_handler.handle(
+                e,
+                severity=ErrorSeverity.ERROR,
+                context="Clipboard handling - unexpected error",
+                recoverable=True,
+                show_dialog=False
+            )
 
     def contextMenuEvent(self, event):
         """

@@ -64,7 +64,7 @@ class OpenAITextToSpeech(BaseProvider):
         :return: path to generated audio file or None if audio playback is handled here
         """
         client = self.plugin.window.core.api.openai.get_client()
-        output_file = self.plugin.output_file
+        output_file = self.plugin.generate_audio_file()
         voice = self.plugin.get_option_value('openai_voice')
         model = self.plugin.get_option_value('openai_model')
         allowed_voices = self.plugin.window.core.audio.whisper.get_voices()

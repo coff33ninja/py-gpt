@@ -87,6 +87,10 @@ class CaptureWorker(QRunnable):
 
         :return: True if initialized
         """
+        from pygpt_net.core.camera.config import CameraConfig
+        from pygpt_net.core.exceptions import CameraError
+        from pygpt_net.core.error_handler import ErrorSeverity
+        
         try:
             from PySide6.QtMultimedia import (
                 QCamera,
@@ -95,15 +99,18 @@ class CaptureWorker(QRunnable):
                 QVideoSink,
             )
 
-            idx = int(self.window.core.config.get('vision.capture.idx') or 0)
-            target_w = int(self.window.core.config.get('vision.capture.width'))
-            target_h = int(self.window.core.config.get('vision.capture.height'))
-            target_fps = 30
+            # Get validated configuration with defaults
+            config = CameraConfig.get_validated_config(self.window)
+            
+            idx = config['idx']
+            target_w = config['width']
+            target_h = config['height']
+            target_fps = config['fps']
             self._fps_interval = 1.0 / float(target_fps)
 
             devices = list(QMediaDevices.videoInputs())
             if not devices:
-                return False
+                raise CameraError("No camera devices found")
 
             if idx < 0 or idx >= len(devices):
                 idx = 0
@@ -124,9 +131,26 @@ class CaptureWorker(QRunnable):
             self.camera.errorOccurred.connect(self._on_qt_camera_error, Qt.QueuedConnection)
             return True
 
+        except CameraError as e:
+            self.window.core.error_handler.handle(
+                e,
+                severity=ErrorSeverity.ERROR,
+                context="Camera initialization (Qt)",
+                user_message="Failed to initialize camera. Please check your camera is connected.",
+                recoverable=True,
+                show_dialog=False
+            )
+            return False
         except Exception as e:
             # Qt Multimedia not available or failed to init
-            self.window.core.debug.log(e)
+            self.window.core.error_handler.handle(
+                e,
+                severity=ErrorSeverity.WARNING,
+                context="Camera initialization (Qt) - Qt Multimedia unavailable",
+                user_message=None,  # Don't show to user, will fallback to OpenCV
+                recoverable=True,
+                show_dialog=False
+            )
             return False
 
     def _teardown_qt(self):
@@ -258,24 +282,51 @@ class CaptureWorker(QRunnable):
 
         :return: True if initialized
         """
+        from pygpt_net.core.camera.config import CameraConfig
+        from pygpt_net.core.exceptions import CameraError
+        from pygpt_net.core.error_handler import ErrorSeverity
+        
         try:
             import cv2
-            idx = int(self.window.core.config.get('vision.capture.idx') or 0)
-            target_w = int(self.window.core.config.get('vision.capture.width') or 640)
-            target_h = int(self.window.core.config.get('vision.capture.height') or 480)
-            target_fps = 30
+            
+            # Get validated configuration with defaults
+            config = CameraConfig.get_validated_config(self.window)
+            
+            idx = config['idx']
+            target_w = config['width']
+            target_h = config['height']
+            target_fps = config['fps']
             self._fps_interval = 1.0 / float(target_fps)
 
             cap = cv2.VideoCapture(idx)
             if not cap or not cap.isOpened():
-                return False
+                raise CameraError(f"Failed to open camera device {idx}")
 
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, target_w)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, target_h)
+            cap.set(cv2.CAP_PROP_FPS, target_fps)
             self.cv_cap = cap
             return True
+            
+        except CameraError as e:
+            self.window.core.error_handler.handle(
+                e,
+                severity=ErrorSeverity.ERROR,
+                context="Camera initialization (OpenCV)",
+                user_message="Failed to initialize camera. Please check your camera is connected.",
+                recoverable=True,
+                show_dialog=False  # Don't show dialog, just log
+            )
+            return False
         except Exception as e:
-            self.window.core.debug.log(e)
+            self.window.core.error_handler.handle(
+                e,
+                severity=ErrorSeverity.ERROR,
+                context="Camera initialization (OpenCV) - unexpected error",
+                user_message="An unexpected error occurred while initializing the camera.",
+                recoverable=True,
+                show_dialog=False
+            )
             return False
 
     def _teardown_cv2(self):

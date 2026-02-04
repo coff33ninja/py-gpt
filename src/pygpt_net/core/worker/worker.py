@@ -24,8 +24,26 @@ class Worker(QRunnable):
     def run(self):
         try:
             self.fn(*self.args, **self.kwargs)
+        except (OSError, RuntimeError, PermissionError) as e:
+            from pygpt_net.core.error_handler import ErrorSeverity
+            if hasattr(self, 'window') and self.window and hasattr(self.window.core, 'error_handler'):
+                self.window.core.error_handler.handle(
+                    e,
+                    severity=ErrorSeverity.ERROR,
+                    context="Worker execution",
+                    recoverable=True,
+                    show_dialog=False
+                )
         except Exception as e:
-            pass
+            from pygpt_net.core.error_handler import ErrorSeverity
+            if hasattr(self, 'window') and self.window and hasattr(self.window.core, 'error_handler'):
+                self.window.core.error_handler.handle(
+                    e,
+                    severity=ErrorSeverity.ERROR,
+                    context="Worker execution - unexpected error",
+                    recoverable=True,
+                    show_dialog=False
+                )
         finally:
             self.cleanup()
 

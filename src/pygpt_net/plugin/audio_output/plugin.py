@@ -35,8 +35,9 @@ class Plugin(BasePlugin):
         self.playback = None
         self.order = 1
         self.use_locale = True
-        # Use unique filename with timestamp to avoid file locking issues
-        self.output_file = f"output_{int(time.time() * 1000)}.mp3"
+        # Temporary file management
+        self._temp_audio_files = []
+        self._max_temp_files = 10
         self.config = Config(self)
         self.worker = None
 
@@ -227,6 +228,14 @@ class Plugin(BasePlugin):
                 self.worker = worker
 
         except Exception as e:
+            from pygpt_net.core.error_handler import ErrorSeverity
+            self.window.core.error_handler.handle(
+                e,
+                severity=ErrorSeverity.ERROR,
+                context="Audio output generation",
+                user_message="Failed to generate audio output",
+                recoverable=True
+            )
             self.error(e)
 
     def on_playback(self, ctx: CtxItem, event: Event):
@@ -264,11 +273,60 @@ class Plugin(BasePlugin):
             self.worker = worker
 
         except Exception as e:
+            from pygpt_net.core.error_handler import ErrorSeverity
+            self.window.core.error_handler.handle(
+                e,
+                severity=ErrorSeverity.ERROR,
+                context="Audio playback",
+                user_message="Failed to play audio",
+                recoverable=True
+            )
             self.error(e)
 
+    def generate_audio_file(self) -> str:
+        """
+        Generate unique audio file path with automatic cleanup
+        
+        :return: Path to temporary audio file
+        """
+        from pygpt_net.core.filesystem.safe_io import SafeFileIO
+        
+        filepath = SafeFileIO.create_temp_audio_file(suffix='.mp3')
+        self._temp_audio_files.append(filepath)
+        
+        # Cleanup old files if we exceed the limit
+        self._cleanup_old_temp_files()
+        
+        return filepath
+    
+    def _cleanup_old_temp_files(self):
+        """Remove old temporary audio files to prevent disk space issues"""
+        from pygpt_net.core.filesystem.safe_io import SafeFileIO
+        
+        while len(self._temp_audio_files) > self._max_temp_files:
+            old_file = self._temp_audio_files.pop(0)
+            try:
+                SafeFileIO.safe_remove(old_file)
+            except Exception as e:
+                # Log but don't fail - cleanup is best-effort
+                if self.window and hasattr(self.window.core, 'debug'):
+                    self.window.core.debug.log(f"Failed to remove temp audio file: {e}")
+    
+    def cleanup(self):
+        """Cleanup all temporary audio files"""
+        from pygpt_net.core.filesystem.safe_io import SafeFileIO
+        
+        for filepath in self._temp_audio_files:
+            try:
+                SafeFileIO.safe_remove(filepath)
+            except Exception:
+                # Ignore errors during cleanup
+                pass
+        self._temp_audio_files.clear()
+    
     def destroy(self):
-        """Destroy thread"""
-        pass
+        """Destroy thread and cleanup resources"""
+        self.cleanup()
 
     def set_status(self, status: str):
         """

@@ -549,6 +549,10 @@ class PainterWidget(QWidget):
             old_canvas = QSize(self._canvasSize)
             self._canvasSize = QSize(target_canvas_size)
 
+            # If canvas size changed, need to update widget display size
+            if old_canvas != self._canvasSize:
+                self._update_widget_size_from_zoom()
+
             self.image = QImage(state['image']) if state['image'] is not None else QImage(self._canvasSize, QImage.Format_RGB32)
             if self.image.size() != self._canvasSize:
                 self.image = self.image.scaled(self._canvasSize, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
@@ -1472,32 +1476,45 @@ class PainterWidget(QWidget):
         if self.baseCanvas is None or self.drawingLayer is None:
             self._ensure_layers()
 
+        # Validate widget is ready for painting
+        if not self.isVisible() or self.width() <= 0 or self.height() <= 0:
+            return
+
         p = QPainter(self)
+        if not p.isActive():
+            return
 
-        # Paint only the region requested by Qt; map it to canvas to avoid scaling the whole image.
-        target_rect = event.rect()
-        if not target_rect.isNull():
-            src_rect = self._widget_rect_to_canvas_rect(target_rect)
-            if not src_rect.isNull():
-                # Draw base
-                p.drawImage(target_rect, self.baseCanvas, src_rect)
-                # Draw strokes on top
-                p.setCompositionMode(QPainter.CompositionMode_SourceOver)
-                p.drawImage(target_rect, self.drawingLayer, src_rect)
+        try:
+            # Paint only the region requested by Qt; map it to canvas to avoid scaling the whole image.
+            target_rect = event.rect()
+            if not target_rect.isNull():
+                src_rect = self._widget_rect_to_canvas_rect(target_rect)
+                if not src_rect.isNull():
+                    # Draw base
+                    p.drawImage(target_rect, self.baseCanvas, src_rect)
+                    # Draw strokes on top
+                    p.setCompositionMode(QPainter.CompositionMode_SourceOver)
+                    p.drawImage(target_rect, self.drawingLayer, src_rect)
 
-        # Draw crop overlay if active (convert canvas selection to display coords)
-        if self.cropping and not self._selectionRect.isNull():
-            sel = self._selectionRect.normalized()
-            sel_view = self._from_canvas_rect(sel)
-            overlay = QColor(0, 0, 0, 120)
-            W, H = self.width(), self.height()
+            # Draw crop overlay if active (convert canvas selection to display coords)
+            if self.cropping and not self._selectionRect.isNull():
+                sel = self._selectionRect.normalized()
+                sel_view = self._from_canvas_rect(sel)
+                overlay = QColor(0, 0, 0, 120)
+                W, H = self.width(), self.height()
 
-            if sel_view.left() > 0:
-                p.fillRect(0, 0, sel_view.left(), H, overlay)
-            if sel_view.right() < W - 1:
-                p.fillRect(sel_view.right() + 1, 0, W - (sel_view.right() + 1), H, overlay)
-            if sel_view.top() > 0:
-                p.fillRect(sel_view.left(), 0, sel_view.width(), sel_view.top(), overlay)
+                if sel_view.left() > 0:
+                    p.fillRect(0, 0, sel_view.left(), H, overlay)
+                if sel_view.right() < W - 1:
+                    p.fillRect(sel_view.right() + 1, 0, W - (sel_view.right() + 1), H, overlay)
+                if sel_view.top() > 0:
+                    p.fillRect(sel_view.left(), 0, sel_view.width(), sel_view.top(), overlay)
+        except (RuntimeError, AttributeError):
+            # Widget deleted during paint
+            pass
+        finally:
+            if p.isActive():
+                p.end()
             if sel_view.bottom() < H - 1:
                 p.fillRect(sel_view.left(), sel_view.bottom() + 1, sel_view.width(), H - (sel_view.bottom() + 1), overlay)
 
@@ -1516,7 +1533,7 @@ class PainterWidget(QWidget):
         Any other widget/layout resize will be ignored for canvas logic.
         """
         new_widget_size = event.size()
-
+        
         # Explicit logical canvas resize requested by controller
         if self._canvasResizeInProgress:
             # Already updated _canvasSize in setter; ensure display size is in sync
@@ -1531,7 +1548,11 @@ class PainterWidget(QWidget):
             return
 
         # Ignore stray layout-driven resizes; enforce current display size from zoom
-        self._update_widget_size_from_zoom()
+        # Log unexpected resizes for debugging
+        expected_size = self._compute_widget_size_from_zoom()
+        if new_widget_size != expected_size:
+            # Widget size doesn't match expected zoom size - enforce it
+            self._update_widget_size_from_zoom()
         self.update()
         super().resizeEvent(event)
 

@@ -81,7 +81,7 @@ class GoogleTextToSpeech(BaseProvider):
         api_key = self.plugin.get_option_value("google_api_key")
         lang = self.plugin.get_option_value("google_lang")
         voice = self.plugin.get_option_value("google_voice")
-        output_file = self.plugin.output_file
+        output_file = self.plugin.generate_audio_file()
         path = os.path.join(
             self.plugin.window.core.config.path,
             output_file,
@@ -106,8 +106,43 @@ class GoogleTextToSpeech(BaseProvider):
 
         r = requests.post(url=url, json=data, headers=headers)
         content = json.loads(r.content)
-        with open(path, "wb") as file:
-            file.write(content.get("audioContent"))
+        
+        from pygpt_net.core.filesystem.safe_io import SafeFileIO
+        from pygpt_net.core.exceptions import AudioError
+        from pygpt_net.core.error_handler import ErrorSeverity
+        
+        try:
+            audio_content = content.get("audioContent")
+            if not audio_content:
+                error = AudioError("No audio content in response")
+                self.window.core.error_handler.handle(
+                    error,
+                    severity=ErrorSeverity.ERROR,
+                    context="Audio generation (Google TTS)",
+                    user_message="Failed to generate audio - no content received",
+                    recoverable=True
+                )
+                raise error
+            
+            # Decode base64 audio content
+            import base64
+            audio_bytes = base64.b64decode(audio_content)
+            
+            with SafeFileIO.safe_open(path, "wb", max_retries=3) as file:
+                file.write(audio_bytes)
+        except AudioError:
+            raise  # Re-raise AudioError as-is
+        except Exception as e:
+            error = AudioError(f"Failed to write audio file {path}: {e}")
+            self.window.core.error_handler.handle(
+                error,
+                severity=ErrorSeverity.ERROR,
+                context="Audio file write (Google TTS)",
+                user_message="Failed to save audio file",
+                recoverable=True
+            )
+            raise error
+        
         return str(path)
 
     def is_configured(self) -> bool:

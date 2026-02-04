@@ -106,6 +106,9 @@ class Tokens:
                 return 0
             try:
                 return len(encoding.encode(str(string)))
+            except (TypeError, ValueError) as e:
+                print("Tokens calc exception", e)
+                return 0
             except Exception as e:
                 print("Tokens calc exception", e)
                 return 0

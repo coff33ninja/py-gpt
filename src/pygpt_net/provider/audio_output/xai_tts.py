@@ -113,9 +113,7 @@ class XAITextToSpeech(BaseProvider):
         host = f"{region}.api.x.ai" if region else "api.x.ai"
         ws_uri = f"wss://{host}/v1/realtime"
 
-        base_dir = self.plugin.window.core.config.path
-        default_name = getattr(self.plugin, "output_file", "output.wav")
-        out_path = os.path.join(base_dir, default_name)
+        out_path = self.plugin.generate_audio_file()
         out_path = self._ensure_extension(out_path, ".wav" if container == "wav" else ".raw")
 
         result_queue: queue.Queue[Tuple[bool, Optional[str], Optional[bytes]]] = queue.Queue()
@@ -149,11 +147,26 @@ class XAITextToSpeech(BaseProvider):
         if not ok or not pcm_bytes:
             raise RuntimeError(err or "xAI TTS failed.")
 
-        if container == "wav":
-            self._write_wav(out_path, sample_rate, pcm_bytes)
-        else:
-            with open(out_path, "wb") as f:
-                f.write(pcm_bytes)
+        from pygpt_net.core.filesystem.safe_io import SafeFileIO
+        from pygpt_net.core.exceptions import AudioError
+        from pygpt_net.core.error_handler import ErrorSeverity
+
+        try:
+            if container == "wav":
+                self._write_wav(out_path, sample_rate, pcm_bytes)
+            else:
+                with SafeFileIO.safe_open(out_path, "wb", max_retries=3) as f:
+                    f.write(pcm_bytes)
+        except Exception as e:
+            error = AudioError(f"Failed to write audio file {out_path}: {e}")
+            self.window.core.error_handler.handle(
+                error,
+                severity=ErrorSeverity.ERROR,
+                context="Audio file write (xAI TTS)",
+                user_message="Failed to save audio file",
+                recoverable=True
+            )
+            raise error
 
         return str(out_path)
 
@@ -285,11 +298,27 @@ class XAITextToSpeech(BaseProvider):
         """
         Writes PCM16LE mono samples into a WAV container.
         """
-        with wave.open(path, "wb") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)
-            wf.setframerate(sample_rate)
-            wf.writeframes(pcm_bytes)
+        from pygpt_net.core.filesystem.safe_io import SafeFileIO
+        from pygpt_net.core.exceptions import AudioError
+        from pygpt_net.core.error_handler import ErrorSeverity
+        
+        try:
+            with SafeFileIO.safe_open(path, "wb", max_retries=3) as f:
+                with wave.open(f, "wb") as wf:
+                    wf.setnchannels(1)
+                    wf.setsampwidth(2)
+                    wf.setframerate(sample_rate)
+                    wf.writeframes(pcm_bytes)
+        except Exception as e:
+            error = AudioError(f"Failed to write WAV file {path}: {e}")
+            self.window.core.error_handler.handle(
+                error,
+                severity=ErrorSeverity.ERROR,
+                context="WAV file write (xAI TTS)",
+                user_message="Failed to save WAV audio file",
+                recoverable=True
+            )
+            raise error
 
     def _ensure_extension(self, path: str, desired_ext: str) -> str:
         """

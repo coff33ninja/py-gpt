@@ -74,7 +74,18 @@ class ChatWebOutput(QWebEngineView):
         if self._glwidget and self._glwidget_filter_installed:
             try:
                 self._glwidget.removeEventFilter(self)
+            except (RuntimeError, AttributeError) as e:
+                self._on_delete_failed(e)
             except Exception as e:
+                from pygpt_net.core.error_handler import ErrorSeverity
+                if hasattr(self, 'window') and self.window and hasattr(self.window.core, 'error_handler'):
+                    self.window.core.error_handler.handle(
+                        e,
+                        severity=ErrorSeverity.WARNING,
+                        context="WebEngine GL widget cleanup",
+                        recoverable=True,
+                        show_dialog=False
+                    )
                 self._on_delete_failed(e)
         self._glwidget = None
         self._glwidget_filter_installed = False
@@ -124,7 +135,18 @@ class ChatWebOutput(QWebEngineView):
             p.setUrl(QUrl("about:blank"))
             p.history().clear()
             p.setLifecycleState(QWebEnginePage.LifecycleState.Discarded)
+        except (RuntimeError, AttributeError) as e:
+            self._on_delete_failed(e)
         except Exception as e:
+            from pygpt_net.core.error_handler import ErrorSeverity
+            if hasattr(self, 'window') and self.window and hasattr(self.window.core, 'error_handler'):
+                self.window.core.error_handler.handle(
+                    e,
+                    severity=ErrorSeverity.WARNING,
+                    context="WebEngine page lifecycle cleanup",
+                    recoverable=True,
+                    show_dialog=False
+                )
             self._on_delete_failed(e)
         finally:
             self._unloaded = True

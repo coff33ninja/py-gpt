@@ -53,6 +53,19 @@ class Updater(QObject):
             self.patch_assistants(version)
             self.patch_attachments(version)
             self.patch_notepad(version)
+        except (OSError, IOError, PermissionError) as e:
+            from pygpt_net.core.error_handler import ErrorSeverity
+            from pygpt_net.core.exceptions import FileOperationError
+            error = FileOperationError(f"Failed to patch config data: {e}")
+            self.window.core.error_handler.handle(
+                error,
+                severity=ErrorSeverity.ERROR,
+                context="Config data patching",
+                user_message="Failed to update configuration files",
+                recoverable=True
+            )
+            self.window.core.debug.log(e)
+            print("Failed to patch config data!")
         except Exception as e:
             self.window.core.debug.log(e)
             print("Failed to patch config data!")
@@ -61,6 +74,19 @@ class Updater(QObject):
         """Migrate database"""
         try:
             self.window.core.db.migrate()
+        except (OSError, IOError, PermissionError) as e:
+            from pygpt_net.core.error_handler import ErrorSeverity
+            from pygpt_net.core.exceptions import FileOperationError
+            error = FileOperationError(f"Database migration failed: {e}")
+            self.window.core.error_handler.handle(
+                error,
+                severity=ErrorSeverity.CRITICAL,
+                context="Database migration",
+                user_message="Failed to migrate database",
+                recoverable=False
+            )
+            self.window.core.debug.log(e)
+            print("Failed to migrate database!")
         except Exception as e:
             self.window.core.debug.log(e)
             print("Failed to migrate database!")

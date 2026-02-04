@@ -24,6 +24,7 @@ from .core.ctx import Ctx
 from .core.db import Database
 from .core.debug import Debug
 from .core.dispatcher import Dispatcher
+from .core.error_handler import ErrorHandler
 from .core.experts import Experts
 from .core.idx import Idx
 from .core.installer import Installer
@@ -75,6 +76,7 @@ class Core:
         self.db = Database(window)
         self.debug = Debug(window)
         self.dispatcher = Dispatcher(window)
+        self.error_handler = ErrorHandler(window)
         self.experts = Experts(window)
         self.filesystem = Filesystem(window)
         self.history = History(window)

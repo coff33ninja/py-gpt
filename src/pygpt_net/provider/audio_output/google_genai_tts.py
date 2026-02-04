@@ -80,8 +80,8 @@ class GoogleGenAITextToSpeech(BaseProvider):
         client = self.plugin.window.core.api.google.get_client()
 
         # Resolve path where audio should be written
-        output_file = self.plugin.output_file
-        path = os.path.join(self.plugin.window.core.config.path, output_file)
+        output_file = self.plugin.generate_audio_file()
+        path = output_file  # generate_audio_file() returns full path
 
         # Validate/select model
         model = self.plugin.get_option_value("google_genai_tts_model") or "gemini-2.5-flash-preview-tts"
@@ -190,15 +190,41 @@ class GoogleGenAITextToSpeech(BaseProvider):
         :param rate: sample rate in Hz (e.g., 24000)
         :param sample_width: sample width in bytes (e.g., 2 for 16-bit)
         """
+        from pygpt_net.core.filesystem.safe_io import SafeFileIO
+        from pygpt_net.core.exceptions import AudioError
+        from pygpt_net.core.error_handler import ErrorSeverity
+        
         # Ensure parent directory exists
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        parent_dir = os.path.dirname(filename)
+        if parent_dir and not SafeFileIO.ensure_directory(parent_dir):
+            error = AudioError(f"Failed to create directory: {parent_dir}")
+            self.window.core.error_handler.handle(
+                error,
+                severity=ErrorSeverity.ERROR,
+                context="Audio output directory creation",
+                user_message="Failed to create audio output directory",
+                recoverable=False
+            )
+            raise error
 
-        # Write PCM payload as WAV
-        with wave.open(filename, "wb") as wf:
-            wf.setnchannels(channels)
-            wf.setsampwidth(sample_width)  # bytes per sample (2 -> 16-bit)
-            wf.setframerate(rate)
-            wf.writeframes(pcm_bytes)
+        # Write PCM payload as WAV with retry logic
+        try:
+            with SafeFileIO.safe_open(filename, "wb", max_retries=3) as f:
+                with wave.open(f, "wb") as wf:
+                    wf.setnchannels(channels)
+                    wf.setsampwidth(sample_width)  # bytes per sample (2 -> 16-bit)
+                    wf.setframerate(rate)
+                    wf.writeframes(pcm_bytes)
+        except Exception as e:
+            error = AudioError(f"Failed to write WAV file {filename}: {e}")
+            self.window.core.error_handler.handle(
+                error,
+                severity=ErrorSeverity.ERROR,
+                context="Audio file write (Google GenAI TTS)",
+                user_message="Failed to save audio file",
+                recoverable=True
+            )
+            raise error
 
     def _normalize_model_name(self, model: str) -> str:
         """

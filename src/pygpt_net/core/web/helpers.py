@@ -111,6 +111,21 @@ class Helpers:
             for k in upload:
                 upload[k].close()  # close files if opened
             return response.status_code, response.text
+        except (requests.exceptions.RequestException, OSError, IOError) as e:
+            from pygpt_net.core.error_handler import ErrorSeverity
+            from pygpt_net.core.exceptions import ProviderError
+            for k in upload:
+                upload[k].close()  # close files if opened
+            error = ProviderError(f"HTTP request failed: {e}")
+            if hasattr(self, 'window') and self.window and hasattr(self.window.core, 'error_handler'):
+                self.window.core.error_handler.handle(
+                    error,
+                    severity=ErrorSeverity.ERROR,
+                    context="Web request",
+                    user_message="Network request failed",
+                    recoverable=True
+                )
+            raise error
         except Exception as e:
             for k in upload:
                 upload[k].close()  # close files if opened

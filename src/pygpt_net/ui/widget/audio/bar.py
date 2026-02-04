@@ -82,24 +82,22 @@ class OutputBar(QWidget):
 
         :param event: event
         """
+        if not self.isVisible() or self.width() <= 0 or self.height() <= 0:
+            return
+
         palette = self.palette()
         painter = QPainter(self)
-        painter.fillRect(self.rect(), Qt.transparent)
-        level_width = (self._level / 100.0) * self.width()
-        painter.setBrush(palette.color(QPalette.ButtonText))
-        painter.setPen(Qt.NoPen)
-        painter.drawRect(0, 0, level_width, self.height())
+        if not painter.isActive():
+            return
 
-    """
-        # --- bar from center ---
-        def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.fillRect(self.rect(), Qt.transparent)
-        level_width = (self._level / 100.0) * self.width()
-        half_level_width = level_width / 2
-        center_x = self.width() / 2
-        rect_x = center_x - half_level_width
-        painter.setBrush(Qt.green)
-        painter.setPen(Qt.NoPen)
-        painter.drawRect(rect_x, 0, level_width, self.height())
-    """
+        try:
+            painter.fillRect(self.rect(), Qt.transparent)
+            level_width = (self._level / 100.0) * self.width()
+            painter.setBrush(palette.color(QPalette.ButtonText))
+            painter.setPen(Qt.NoPen)
+            painter.drawRect(0, 0, level_width, self.height())
+        except (RuntimeError, AttributeError):
+            pass
+        finally:
+            if painter.isActive():
+                painter.end()
