@@ -260,9 +260,9 @@ class CaptureWorker(QRunnable):
         """
         try:
             import cv2
-            idx = int(self.window.core.config.get('vision.capture.idx'))
-            target_w = int(self.window.core.config.get('vision.capture.width'))
-            target_h = int(self.window.core.config.get('vision.capture.height'))
+            idx = int(self.window.core.config.get('vision.capture.idx') or 0)
+            target_w = int(self.window.core.config.get('vision.capture.width') or 640)
+            target_h = int(self.window.core.config.get('vision.capture.height') or 480)
             target_fps = 30
             self._fps_interval = 1.0 / float(target_fps)
 

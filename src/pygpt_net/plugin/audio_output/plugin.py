@@ -10,6 +10,7 @@
 # ================================================== #
 
 from typing import Any
+import time
 
 from PySide6.QtCore import Slot
 
@@ -34,7 +35,8 @@ class Plugin(BasePlugin):
         self.playback = None
         self.order = 1
         self.use_locale = True
-        self.output_file = "output.mp3"
+        # Use unique filename with timestamp to avoid file locking issues
+        self.output_file = f"output_{int(time.time() * 1000)}.mp3"
         self.config = Config(self)
         self.worker = None
 

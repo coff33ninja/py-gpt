@@ -95,7 +95,7 @@ class JsonFileProvider(BaseProvider):
         data = {}
         path = os.path.join(self.path, self.config_file)
         if not os.path.exists(path):
-            print("User config: {} not found.".format(path))
+            # Config will be created by install() - no need to print warning
             return None
         try:
             with open(path, 'r', encoding="utf-8") as f:
