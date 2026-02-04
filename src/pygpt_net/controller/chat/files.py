@@ -74,8 +74,20 @@ class Files:
                 if is_upload and num_uploaded > 0:
                     self.window.update_status(trans('status.uploaded'))
 
+            except ConnectionError as e:
+                self.window.core.error_handler.handle(e, "chat.files.upload.connection")
+                self.window.ui.dialogs.alert(e)
+            except TimeoutError as e:
+                self.window.core.error_handler.handle(e, "chat.files.upload.timeout")
+                self.window.ui.dialogs.alert(e)
+            except PermissionError as e:
+                self.window.core.error_handler.handle(e, "chat.files.upload.permission")
+                self.window.ui.dialogs.alert(e)
+            except OSError as e:
+                self.window.core.error_handler.handle(e, "chat.files.upload.os_error")
+                self.window.ui.dialogs.alert(e)
             except Exception as e:
-                self.window.core.debug.log(e)
+                self.window.core.error_handler.handle(e, "chat.files.upload")
                 self.window.ui.dialogs.alert(e)
 
         return attachments_list

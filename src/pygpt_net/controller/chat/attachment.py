@@ -175,49 +175,58 @@ class Attachment(QObject):
         uploaded = False
         if not self.is_allowed(attachment.path):
             return False
-        if self.window.core.filesystem.packer.is_archive(attachment.path):
-            if self.is_verbose():
-                print(f"Unpacking archive: {attachment.path}")
-            tmp_path = self.window.core.filesystem.packer.unpack(attachment.path)
-            if tmp_path:
-                for root, dirs, files in os.walk(tmp_path):
-                    for file in files:
-                        path = str(os.path.join(root, file))
-                        sub_attachment = AttachmentItem()
-                        sub_attachment.path = path
-                        sub_attachment.name = os.path.basename(path)
-                        sub_attachment.consumed = False
-                        path_relative = os.path.relpath(path, tmp_path)
-                        if self.is_allowed(str(path)):
-                            if self.is_verbose():
-                                print(f"Uploading unpacked from archive: {path_relative}")
-                            item = self.window.core.attachments.context.upload(
-                                meta=meta,
-                                attachment=sub_attachment,
-                                prompt=prompt,
-                                real_path=attachment.path,
-                                auto_index=auto_index,
-                            )
-                            if item:
-                                item["path"] = f"{os.path.basename(attachment.path)}/{str(path_relative)}"
-                                item["size"] = os.path.getsize(path)
-                                self.append_to_meta(meta, item)
-                                uploaded = True
-                                sub_attachment.consumed = True
-                                attachment.consumed = True
-                self.window.core.filesystem.packer.remove_tmp(tmp_path)  # clean
-        else:
-            item = self.window.core.attachments.context.upload(
-                meta=meta,
-                attachment=attachment,
-                prompt=prompt,
-                real_path=attachment.path,
-                auto_index=auto_index,
-            )
-            if item:
-                self.append_to_meta(meta, item)
-                attachment.consumed = True  # allow for deletion
-                uploaded = True
+        try:
+            if self.window.core.filesystem.packer.is_archive(attachment.path):
+                if self.is_verbose():
+                    print(f"Unpacking archive: {attachment.path}")
+                tmp_path = self.window.core.filesystem.packer.unpack(attachment.path)
+                if tmp_path:
+                    for root, dirs, files in os.walk(tmp_path):
+                        for file in files:
+                            path = str(os.path.join(root, file))
+                            sub_attachment = AttachmentItem()
+                            sub_attachment.path = path
+                            sub_attachment.name = os.path.basename(path)
+                            sub_attachment.consumed = False
+                            path_relative = os.path.relpath(path, tmp_path)
+                            if self.is_allowed(str(path)):
+                                if self.is_verbose():
+                                    print(f"Uploading unpacked from archive: {path_relative}")
+                                item = self.window.core.attachments.context.upload(
+                                    meta=meta,
+                                    attachment=sub_attachment,
+                                    prompt=prompt,
+                                    real_path=attachment.path,
+                                    auto_index=auto_index,
+                                )
+                                if item:
+                                    item["path"] = f"{os.path.basename(attachment.path)}/{str(path_relative)}"
+                                    item["size"] = os.path.getsize(path)
+                                    self.append_to_meta(meta, item)
+                                    uploaded = True
+                                    sub_attachment.consumed = True
+                                    attachment.consumed = True
+                    self.window.core.filesystem.packer.remove_tmp(tmp_path)  # clean
+            else:
+                item = self.window.core.attachments.context.upload(
+                    meta=meta,
+                    attachment=attachment,
+                    prompt=prompt,
+                    real_path=attachment.path,
+                    auto_index=auto_index,
+                )
+                if item:
+                    self.append_to_meta(meta, item)
+                    attachment.consumed = True  # allow for deletion
+                    uploaded = True
+        except FileNotFoundError as e:
+            self.window.core.error_handler.handle(e, "chat.attachment.upload_file")
+        except PermissionError as e:
+            self.window.core.error_handler.handle(e, "chat.attachment.upload_file")
+        except OSError as e:
+            self.window.core.error_handler.handle(e, "chat.attachment.upload_file")
+        except Exception as e:
+            self.window.core.error_handler.handle(e, "chat.attachment.upload_file")
         return uploaded
 
     def append_to_meta(self, meta: CtxMeta, item: Dict[str, Any]):
@@ -595,8 +604,11 @@ class Attachment(QObject):
             if "tokens" in item:
                 try:
                     tokens += int(item["tokens"])
+                except (ValueError, TypeError) as e:
+                    # Log invalid token count but continue processing other items
+                    self.window.core.error_handler.handle(e, "chat.attachment.get_current_tokens")
                 except Exception as e:
-                    pass
+                    self.window.core.error_handler.handle(e, "chat.attachment.get_current_tokens")
         return tokens
 
     @Slot(object)

@@ -245,7 +245,26 @@ class Input:
             }))
             try:
                 controller.chat.attachment.handle(mode, text)
+            except FileNotFoundError as e:
+                self.window.core.error_handler.handle(e, "chat.input.attachment.file_not_found")
+                dispatch(KernelEvent(KernelEvent.STATE_ERROR, {
+                    "id": "chat",
+                    "msg": f"Error reading attachments: {e}"
+                }))
+            except PermissionError as e:
+                self.window.core.error_handler.handle(e, "chat.input.attachment.permission")
+                dispatch(KernelEvent(KernelEvent.STATE_ERROR, {
+                    "id": "chat",
+                    "msg": f"Error reading attachments: {e}"
+                }))
+            except OSError as e:
+                self.window.core.error_handler.handle(e, "chat.input.attachment.os_error")
+                dispatch(KernelEvent(KernelEvent.STATE_ERROR, {
+                    "id": "chat",
+                    "msg": f"Error reading attachments: {e}"
+                }))
             except Exception as e:
+                self.window.core.error_handler.handle(e, "chat.input.attachment")
                 dispatch(KernelEvent(KernelEvent.STATE_ERROR, {
                     "id": "chat",
                     "msg": f"Error reading attachments: {e}"

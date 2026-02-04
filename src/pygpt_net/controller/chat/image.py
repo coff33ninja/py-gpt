@@ -144,7 +144,32 @@ class Image:
                     "extra_prompt": extra_prompt,
                 },
             }))
+        except ConnectionError as e:
+            core.error_handler.handle(e, "chat.image.send")
+            core.debug.log(e)
+            self.window.ui.dialogs.alert(e)
+            update_status(trans('status.error'))
+            dispatch(KernelEvent(KernelEvent.STATE_ERROR, {
+                "id": "chat",
+            }))
+        except TimeoutError as e:
+            core.error_handler.handle(e, "chat.image.send")
+            core.debug.log(e)
+            self.window.ui.dialogs.alert(e)
+            update_status(trans('status.error'))
+            dispatch(KernelEvent(KernelEvent.STATE_ERROR, {
+                "id": "chat",
+            }))
+        except RuntimeError as e:
+            core.error_handler.handle(e, "chat.image.send")
+            core.debug.log(e)
+            self.window.ui.dialogs.alert(e)
+            update_status(trans('status.error'))
+            dispatch(KernelEvent(KernelEvent.STATE_ERROR, {
+                "id": "chat",
+            }))
         except Exception as e:
+            core.error_handler.handle(e, "chat.image.send")
             core.debug.log(e)
             self.window.ui.dialogs.alert(e)
             update_status(trans('status.error'))
@@ -179,14 +204,20 @@ class Image:
         ico_dir = os.path.join("%appdir%", "data", "icons")
         ico_download = os.path.join(ico_dir, "download.svg")
         ico_preview = os.path.join(ico_dir, "view.svg")
+        
+        # Check if we should use icon-based links (can be controlled by config in future)
+        use_icons = False  # TODO: Add config option for this if needed
+        
         for path in paths:
             safe_path = self.window.core.filesystem.make_local(path)
-            """
-            urls.append(f"![image]({ico_preview}) [**{trans('action.preview')}**]({safe_path})  "
-                        f"![image]({ico_download})[**{trans('action.download')}**](bridge://download/{safe_path})")
-            """
-            urls.append(f"[**{trans('action.open')}**]({safe_path}) | "
-                        f"[**{trans('action.save_as')}**](bridge://download/{safe_path})")
+            if use_icons:
+                # Icon-based links with preview and download icons
+                urls.append(f"![image]({ico_preview}) [**{trans('action.preview')}**]({safe_path})  "
+                            f"![image]({ico_download})[**{trans('action.download')}**](bridge://download/{safe_path})")
+            else:
+                # Simple text links (current default)
+                urls.append(f"[**{trans('action.open')}**]({safe_path}) | "
+                            f"[**{trans('action.save_as')}**](bridge://download/{safe_path})")
             i += 1
         string += "\n".join(urls)
 

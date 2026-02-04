@@ -140,7 +140,17 @@ class StreamWorker(QRunnable):
                 # after loop: handle tool-calls and images assembly
                 self._handle_after_loop(ctx, core, state)
 
+        except ConnectionError as e:
+            core.error_handler.handle(e, "chat.stream_worker.run")
+            state.error = e
+        except TimeoutError as e:
+            core.error_handler.handle(e, "chat.stream_worker.run")
+            state.error = e
+        except RuntimeError as e:
+            core.error_handler.handle(e, "chat.stream_worker.run")
+            state.error = e
         except Exception as e:
+            core.error_handler.handle(e, "chat.stream_worker.run")
             state.error = e
 
         finally:

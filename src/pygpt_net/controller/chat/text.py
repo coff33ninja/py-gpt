@@ -225,7 +225,20 @@ class Text:
                 "extra": extra,
             }))
 
+        except ConnectionError as e:
+            self.window.core.error_handler.handle(e, "chat.text.send.connection")
+            controller.chat.handle_error(e)
+            log(f"Bridge call ERROR: {e}")
+        except TimeoutError as e:
+            self.window.core.error_handler.handle(e, "chat.text.send.timeout")
+            controller.chat.handle_error(e)
+            log(f"Bridge call ERROR: {e}")
+        except RuntimeError as e:
+            self.window.core.error_handler.handle(e, "chat.text.send.runtime")
+            controller.chat.handle_error(e)
+            log(f"Bridge call ERROR: {e}")
         except Exception as e:
+            self.window.core.error_handler.handle(e, "chat.text.send")
             controller.chat.handle_error(e)
             log(f"Bridge call ERROR: {e}")
 
@@ -240,8 +253,16 @@ class Text:
         """
         core = self.window.core
         stream = core.config.get("stream")
-        if mode in (MODE_AGENT_LLAMA):
-            return False  # TODO: check if this is correct in agent
+        # Agent modes: disable stream for agent modes (handled differently)
+        if mode in (MODE_AGENT, MODE_AGENT_LLAMA, MODE_AGENT_OPENAI):
+            return False
+        # Audio mode: disable stream for audio mode
+        elif mode == MODE_AUDIO:
+            return False
+        # Computer mode: disable stream for computer mode
+        elif mode == MODE_COMPUTER:
+            return False
+        # Llama Index mode: check specific conditions
         elif mode == MODE_LLAMA_INDEX:
             if core.config.get("llama.idx.mode") == "retrieval":
                 return False

@@ -102,7 +102,20 @@ class Response:
                     context=context,
                     extra=extra,
                 )
+        except ConnectionError as e:
+            core.error_handler.handle(e, "chat.response.handle")
+            extra["error"] = e
+            self.failed(context, extra)
+        except TimeoutError as e:
+            core.error_handler.handle(e, "chat.response.handle")
+            extra["error"] = e
+            self.failed(context, extra)
+        except RuntimeError as e:
+            core.error_handler.handle(e, "chat.response.handle")
+            extra["error"] = e
+            self.failed(context, extra)
         except Exception as e:
+            core.error_handler.handle(e, "chat.response.handle")
             extra["error"] = e
             self.failed(context, extra)
 
@@ -177,8 +190,9 @@ class Response:
 
         # if stopped
         if controller.kernel.stopped():
-            # if ctx.output and has_unclosed_code_tag(ctx.output):
-                # ctx.output += "\n```"
+            # Fix unclosed code blocks when stopped
+            if ctx.output and has_unclosed_code_tag(ctx.output):
+                ctx.output += "\n```"
             ctx.msg_id = None
             if ctx.id is None:
                 if not ctx.is_empty():
@@ -248,7 +262,23 @@ class Response:
 
         try:
             chat_output.handle(ctx, mode, stream)
+        except ConnectionError as e:
+            core.error_handler.handle(e, "chat.response.append")
+            log(f"Output ERROR: {e}")  # log
+            controller.chat.handle_error(e)
+            print(f"Error in append text: {e}")
+        except TimeoutError as e:
+            core.error_handler.handle(e, "chat.response.append")
+            log(f"Output ERROR: {e}")  # log
+            controller.chat.handle_error(e)
+            print(f"Error in append text: {e}")
+        except RuntimeError as e:
+            core.error_handler.handle(e, "chat.response.append")
+            log(f"Output ERROR: {e}")  # log
+            controller.chat.handle_error(e)
+            print(f"Error in append text: {e}")
         except Exception as e:
+            core.error_handler.handle(e, "chat.response.append")
             log(f"Output ERROR: {e}")  # log
             controller.chat.handle_error(e)
             print(f"Error in append text: {e}")

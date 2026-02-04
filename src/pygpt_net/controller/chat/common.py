@@ -37,7 +37,7 @@ class Common:
         # Private start timestamp
         self._t0: Optional[float] = None
         # Optional number-shortening function (e.g., 10000 -> "10k"); if None, a fallback is used
-        self._shortener = None
+        self._shortener: Optional[Callable[[float], str]] = None
 
     def setup(self):
         """Set up UI"""
@@ -96,16 +96,22 @@ class Common:
                 try:
                     nodes['output'][pid].setVisible(False)
                     nodes['output_plain'][pid].setVisible(True)
+                except (KeyError, AttributeError, RuntimeError) as e:
+                    # Widget may not exist or be accessible, log and continue
+                    self.window.core.error_handler.handle(e, f"chat.common.setup.output.{pid}")
                 except Exception as e:
-                    pass
+                    self.window.core.error_handler.handle(e, f"chat.common.setup.output.{pid}")
         else:
             nodes['output.timestamp'].setVisible(False)
             for pid in nodes['output']:
                 try:
                     nodes['output'][pid].setVisible(True)
                     nodes['output_plain'][pid].setVisible(False)
+                except (KeyError, AttributeError, RuntimeError) as e:
+                    # Widget may not exist or be accessible, log and continue
+                    self.window.core.error_handler.handle(e, f"chat.common.setup.output_plain.{pid}")
                 except Exception as e:
-                    pass
+                    self.window.core.error_handler.handle(e, f"chat.common.setup.output_plain.{pid}")
 
         event = RenderEvent(RenderEvent.ON_SWITCH)
         self.window.dispatch(event)  # switch renderer if needed
@@ -228,8 +234,14 @@ class Common:
         """
         unlock = True
         mode = self.window.core.config.get('mode')
+        
+        # Check if assistant mode is still running
         if mode == "assistant":
-            finish = False
+            is_running = self.window.controller.assistant.threads.is_running()
+            if is_running:
+                unlock = False
+        
+        # Check if legacy agent is still running
         if (self.window.controller.agent.legacy.enabled() and
                 (not self.window.controller.agent.legacy.finished or self.window.controller.agent.legacy.stop)):
             unlock = False
@@ -324,8 +336,12 @@ class Common:
         """Stop all clients"""
         try:
             self.window.core.api.stop()
-        except Exception:
-            pass
+        except ConnectionError as e:
+            self.window.core.error_handler.handle(e, "chat.common.stop_client")
+        except TimeoutError as e:
+            self.window.core.error_handler.handle(e, "chat.common.stop_client")
+        except Exception as e:
+            self.window.core.error_handler.handle(e, "chat.common.stop_client")
 
     def check_api_key(
             self,
@@ -459,13 +475,20 @@ class Common:
             options,
         )
         if file_name:
-            # convert text to plain text
-            self.window.core.config.set_last_used_dir(
-                os.path.dirname(file_name),
-            )
-            with open(file_name, 'w', encoding="utf-8") as f:
-                f.write(str(text).strip())
-            self.window.update_status(f"{trans('status.saved')}: {os.path.basename(file_name)}")
+            try:
+                # convert text to plain text
+                self.window.core.config.set_last_used_dir(
+                    os.path.dirname(file_name),
+                )
+                with open(file_name, 'w', encoding="utf-8") as f:
+                    f.write(str(text).strip())
+                self.window.update_status(f"{trans('status.saved')}: {os.path.basename(file_name)}")
+            except PermissionError as e:
+                self.window.core.error_handler.handle(e, "chat.common.save_text")
+            except OSError as e:
+                self.window.core.error_handler.handle(e, "chat.common.save_text")
+            except Exception as e:
+                self.window.core.error_handler.handle(e, "chat.common.save_text")
 
     # --- Timer control ---
 
@@ -496,6 +519,21 @@ class Common:
         self._t0 = None
         self.counter = 0.0
 
+    def set_shortener(self, shortener: Optional[Callable[[float], str]]) -> None:
+        """
+        Set a custom number shortening function.
+        
+        :param shortener: Function that takes a float and returns a shortened string (e.g., 15300 -> "15.3k")
+                         If None, uses the built-in _fallback_shorten method
+        
+        Example:
+            def my_shortener(value: float) -> str:
+                return f"{value:.2f}"
+            
+            common.set_shortener(my_shortener)
+        """
+        self._shortener = shortener
+
     # --- Calculation and formatting ---
 
     def tokens_per_second(self, tokens_generated: int, seconds: Optional[float] = None) -> float:
@@ -519,7 +557,7 @@ class Common:
         total = int(sec)  # floor to whole seconds
         days, rem = divmod(total, 86400)
         hours, rem = divmod(rem, 3600)
-        minutes, seconds = divmod(rem, 60)
+        minutes, secs = divmod(rem, 60)
 
         parts = []
         if days:
@@ -528,8 +566,8 @@ class Common:
             parts.append(f"{hours}h")
         if minutes:
             parts.append(f"{minutes}m")
-        if seconds or not parts:
-            parts.append(f"{seconds}s")
+        if secs or not parts:
+            parts.append(f"{secs}s")
 
         return " ".join(parts[:max_units])
 
